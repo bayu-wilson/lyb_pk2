@@ -1,0 +1,15 @@
+# Don't add these directories
+data/
+output/
+papers/
+trash/
+testing/
+*.csv
+*.ipynb
+plot/sightlines/
+plot/old/
+plot/figures/
+__pycache__/
+.DS_Store/
+*.icloud
+
