@@ -1,0 +1,4 @@
+# A measurement of the Ly-β forest power spectrum and its cross with the Ly-α forest in X-Shooter 100
+
+
+The Ly-α forest has been used to constrain the Universe's initial conditions and the timing of reionization processes. However, many studies have found that large de-generacies in parameters exist when using the standard statistic, the Ly-α forest power spectrum, such as between the gas temperature and particle mass in warm/fuzzy darkmatter models. To break these degeneracies and improve the cosmological constraining power of the forest, we measure the power spectrum of the Ly-β forest and its cross correlation with the coeveal Ly-α forest using the VLT/XSHOOTER XQ-100 Legacy Survey data set, motivated by this transition’s lower absorption cross-section that makes it sensitive to higher densities relative to Ly-α.
