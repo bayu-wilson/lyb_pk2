@@ -332,6 +332,7 @@ if inis.save_dla:
     x.to_csv(inis.save_dla_path,index=False)
 
 print("OVI Added?: ", inis.add_ovi)
+print("SiIII Added?: ", inis.add_sithree)
 if (inis.remove_dla)&inis.cat_name.startswith('obs'):
     print("DLA's removed?: ", inis.remove_dla)
 else:

@@ -13,9 +13,9 @@ tag = "lyb_nocorr_n5000" #"lyb_nocorr"#"corrNR"
 #"gaussian_n600" #"lyb_nocorr_n700"#"zsubset3.8" #lyb_nocorr_n5000, ,lyb_nocorr, noB_onlyA, noB_n5000,uncorr, lyb_wR2_n5000, corrNR, zsubset3.8, gaussian #gaussian_n5000
 
 mock_or_obs = cat_name.split("/")[0]
-add_beta = True # only works on mocks, see line 188 in QuasarSpectrum.py
-add_ovi = False # also only works on mocks
-add_sithree = False # also only works on mocks
+add_beta = True # only works on "noB" mocks, see line 188 in QuasarSpectrum.py
+add_ovi = True # also only works on mocks
+add_sithree = True # also only works on mocks
 subtract_metal_power = True
 continuum_correction = False
 M = 1000 # Bootstrap samples, line 19 in boot_indo.py

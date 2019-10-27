@@ -52,8 +52,10 @@ custom_lines = [Line2D([0], [0], color=colors[0], lw=9, marker=None),
 # pkdata = pd.read_csv("")
 # pkdata = pd.read_csv(inis.save_pk_with_err_path)
 # pkdata = pd.read_csv("../output/OVI_final/pk_mocks_noB_addedB.csv")
-pkdata = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_noOVI.csv")
-pkdata_addedOVI = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_addedOVI.csv")
+# pkdata = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_noOVI.csv")
+# pkdata_addedOVI = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_addedOVI.csv")
+pkdata = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_n5000_nothingadded.csv")
+pkdata_addedOVI = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_n5000_addedOVI.csv")
 # pkdata_addedOVI = pd.read_csv("../output/OVI_final/pk_mocks_noB_addedB_addedOVI.csv")
 
 
