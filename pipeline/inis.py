@@ -19,7 +19,6 @@ add_sithree = False # also only works on mocks
 subtract_metal_power = False
 continuum_correction = False
 M = 1000 # Bootstrap samples, line 19 in boot_indo.py
-##############################################################################################################
 
 remove_dla = False
 if remove_dla:
@@ -28,6 +27,9 @@ if remove_dla:
     lya_dlas_in_lybf = True
 
 wR2 = False # If True use original R2, if False, use wR column (11 km/s)
+##############################################################################################################
+
+
 
 ntag = "n100" # default
 nqso = 100
