@@ -93,7 +93,13 @@ class QuasarSpectrum(object):
             dla_table = pd.read_csv(path_to_dlas,delim_whitespace=True,names=dla_colnames)
             qname_array,z_array = catalog_table['qso_name'].values,catalog_table['redshifts'].values
             nqso = 100
-            cls.dla_table = dla_table
+            cls.dla_table = dla_table#.iloc[26:27]
+            #print()
+            # cls.dla_table = pd.DataFrame([dla_table.iloc[i] for i in [38,39,40]])
+            #[2,3,7,8,9,14,18,35]])
+            #dla_table.iloc[]
+            #.iloc[8:9] #dla_table#.iloc[:1] # CHANGE NOV 19 !!!!!!!!!!!!!!!!!!!!!!!!
+            #print(dla_table.iloc[8:9])
             #cls.all_dla_NHI = dla_table.NHI.values
             #cls.all_dla_names = dla_table.name.values
             #cls.all_dla_redshifts = dla_table.z.values
@@ -165,11 +171,14 @@ class QuasarSpectrum(object):
             err_flux = qso_table.ferr.values/cont_table.flx.values
             # RMS RESOLUTION = FWHM/(2*sqrt(2ln(2)))
 
-            #June 25th #Carswell
-            resolution = np.ones_like(wavelength)
-            m1 = wavelength<=5599.14
-            resolution[m1] = 41.52075368/(2*np.sqrt(2*np.log(2)))
-            resolution[~m1] = 23.60134842/(2*np.sqrt(2*np.log(2)))
+            resolution = qso_table.res.values #jan7
+            # print(name,resolution)
+            #Commented on #jan7
+            # #June 25th #Carswell
+            # resolution = np.ones_like(wavelength)
+            # m1 = wavelength<=5599.14
+            # resolution[m1] = 41.52075368/(2*np.sqrt(2*np.log(2)))
+            # resolution[~m1] = 23.60134842/(2*np.sqrt(2*np.log(2)))
 
 
 
@@ -194,7 +203,7 @@ class QuasarSpectrum(object):
                    resolution=resolution,dloglambda=dloglambda,
                    unnormalized_flux=unnormalized_flux)
 
-    def get_chunks(self,which_chunk): # askdfjaskdjf
+    def get_chunks(self,which_chunk): # askdfjaskdjf # am I even using this!?!?!?!?
         increases,decreases = 0,0
         inc_list, dec_list = [],[]
         m = self.mask_dla
@@ -311,8 +320,11 @@ class QuasarSpectrum(object):
 
         if inis.cat_name.startswith('obs'):
             if (name in self.dla_table.name.values)&(inis.remove_dla):
+                # print(name) #dec2
                 sub_table = self.dla_table[self.dla_table.name == name]
                 num_dlas = len(sub_table)
+                # if num_dlas>1:
+                #     print(name)
                 mask_dla = np.ones_like(self.wavelength,'bool')
                 for n in range(num_dlas):
                     row = sub_table.iloc[n]

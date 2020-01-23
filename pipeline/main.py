@@ -32,8 +32,8 @@ for i in range(nqso):
     if inis.cat_name.startswith('mocks')&(inis.add_sithree): #adding SiIII
         q.get_new_forest(rescale_flux=rescale_flux,wrange =
             (opt.sithree_min,opt.sithree_max,opt.sithree_rest_d1, opt.xs_sithree))
-        q.get_new_forest(rescale_flux=rescale_flux,wrange =
-            (opt.sithree_min,opt.sithree_max,opt.sithree_rest_d2, opt.xs_sithree))
+        # q.get_new_forest(rescale_flux=rescale_flux,wrange =
+        #     (opt.sithree_min,opt.sithree_max,opt.sithree_rest_d2, opt.xs_sithree))
     qso_arr.append(q)
 
 print("Done!\n")
@@ -177,7 +177,7 @@ for zidx in range(opt.zbinlen): #aug15 #aug20
     msrmnt_in_kbin = np.zeros((n_pk_msrmnts,opt.kbinlen))
     count_in_kbin = np.zeros((n_pk_msrmnts,opt.kbinlen))
     msrmnt_in_kbin[0] = opt.kbin_centers
-    count_in_kbin[0] = np.ones_like(opt.kbin_centers)
+    count_in_kbin[0] = np.ones_like(opt.kbin_centers) # these have to be ones.I just divide by one later.
     count_in_kbin[6] = np.ones_like(opt.kbin_centers)
     count_in_kbin[7] = np.ones_like(opt.kbin_centers)
     count_in_kbin[8] = np.ones_like(opt.kbin_centers)
@@ -206,10 +206,21 @@ for zidx in range(opt.zbinlen): #aug15 #aug20
 
 
         # SWITCH #aug14
+        #nchunks_a=2 # TEST CHANGE THIS
         for chunk_idx_a in range(nchunks_a):
             #if qidx == 2999: #july 17
             #    print(np.sum(zmask_a),np.where(zmask_a)[0],len(zmask_a),chunk_idx_a,opt.get_chunks(zmask_a),nchunks_a)
             zmask_a_sub = opt.get_chunks(zmask_a)[chunk_idx_a]
+            # if (qidx == 64)&(zidx==2):
+            #     #zmask_a_sub = zmask_a_sub[23:]
+            #     #zmask_a_sub = zmask_a_sub[22:]
+            #     print("\n remove dla?: ", inis.remove_dla)
+            #     print("nchunks: ", nchunks_a)
+            #     print("index chunk: ",chunk_idx_a)
+            #     print("npix: ",len(zmask_a_sub))
+            #     print(zmask_a_sub)
+
+
             if np.sum(zmask_a_sub)>opt.min_pix:
                 kpix,pk = qso_arr[qidx].get_autopower(mf_output_df.mf_a[zidx],zmask_a_sub)
                 for kidx in range(opt.kbinlen): #aug15 #aug20
@@ -230,6 +241,16 @@ for zidx in range(opt.zbinlen): #aug15 #aug20
         # LYB FOREST: P TOTAL TOTAL
         for chunk_idx_tot in range(nchunks_tot):
             zmask_tot_sub = opt.get_chunks(zmask_tot)[chunk_idx_tot]
+            #if (qidx == 60)&(zidx==4):
+                #zmask_a_sub = zmask_a_sub[23:]
+                #zmask_a_sub = zmask_a_sub[22:]
+                # print("\n remove dla?: ", inis.remove_dla)
+                # print("nchunks: ", nchunks_tot)
+                # print("index chunk: ",chunk_idx_tot)
+                # print("npix: ",len(zmask_tot_sub))
+                # print(zmask_tot_sub)
+
+
             if (np.sum(zmask_tot_sub)>opt.min_pix):
                 kpix,pk = qso_arr[qidx].get_autopower(mf_output_df.mf_tot[zidx],zmask_tot_sub)
                 for kidx in range(opt.kbinlen): #aug15 #aug20
@@ -244,7 +265,6 @@ for zidx in range(opt.zbinlen): #aug15 #aug20
                     s = "{4:g} 1 {0:g} {1:g} {2:g} {3:g}".format(opt.zbin_centers[zidx],opt.kbin_centers[kidx],
                                                     np.sum(pk_sub),len(pk_sub), qidx) #july1 #average of pab_sub??
                     f.write(s+'\n') #july1
-
 
 
         # Loop through more chunks here. Check zmask_tot and zmask_a CROSS POWER

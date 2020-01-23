@@ -73,8 +73,7 @@ pk_msrmnts = ['k','Paa','Ptot','Pab','Qab','Pbb','npix_aa','npix_tt','npix_ab','
 # tiny_zbin_edges = np.round(np.linspace(zmin_edge,zmax_edge,tiny_zbinlen+1),2)
 
 # Wavenumbers
-log_binning = True
-if log_binning:
+if inis.log_kbinning:
     kmin = inis.kmin #3e-3
     kmax = inis.kmax #6e-2
     kbinlen = inis.kbinlen #13?
@@ -128,6 +127,19 @@ def find_za(lyb_z):
     z_alpha(z_beta): 2.4, 2.5, 2.7, 2.9, 3.0, 3.2, 3.4
     """
     return (lyb_z + 1)*(lyb_rest/lya_rest)-1
+
+def find_zb(lya_z):
+    """
+    Gives redshift of pixel in lya forest from lyb transition
+    INPUT:
+    redshift of pixel from lyb transition
+    OUTPUT:
+    redshift of the same pixel but at lya transition (lower redshift)
+    i.e.)
+    z_beta:          3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2
+    z_alpha(z_beta): 2.4, 2.5, 2.7, 2.9, 3.0, 3.2, 3.4
+    """
+    return (lya_z + 1)*(lya_rest/lyb_rest)-1
 
 def window(k,p,R):
     """

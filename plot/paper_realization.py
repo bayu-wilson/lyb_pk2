@@ -54,8 +54,8 @@ mean_pk_table = np.reshape(np.loadtxt('../output/realizations/mean_pk.txt').T,(5
 var_pk_table = np.reshape(np.loadtxt('../output/realizations/var_pk.txt').T,(50,21,13))
 p_xx_z = np.reshape(np.mean(mean_pk_table,axis=0),(3,7,13)) #paa,ptt,pab for 7 zbins and 13 kbins
 sigma_xx_z = np.reshape(np.std(mean_pk_table,axis=0),(3,7,13)) #sigma_aa,sigma_ptt,sigma_pab for 7 zbins and 13 kbins
-boot_sigma_xx_z = np.reshape(np.mean(np.sqrt(var_pk_table),axis=0),(3,7,13))
-sigma_boot_sigma_xx_z = np.reshape(np.std(np.sqrt(var_pk_table),axis=0),(3,7,13))
+boot_sigma_xx_z = np.reshape(np.mean(np.sqrt(var_pk_table),axis=0),(3,7,13)) #mean of the std's
+sigma_boot_sigma_xx_z = np.reshape(np.std(np.sqrt(var_pk_table),axis=0),(3,7,13)) #std of the std's
 
 
 # plt.style.use('classic')

@@ -9,19 +9,19 @@ cat_name = "mocks/XQ-100_catalogue_n5000" #"obs/XQ-100_catalogue" #"mocks/XQ-100
 # obs/XQ-100_catalogue #mocks/XQ-100_catalogue_n700
 
 #Most important use of `tag` in load_qso_data method in QuasarSpectrum.py. Line 113
-tag = "lyb_nocorr_n5000" #"lyb_nocorr"#"corrNR"
+tag = "lyb_wNR_n5000" #"lyb_nocorr"#"corrNR"
 #"gaussian_n600" #"lyb_nocorr_n700"#"zsubset3.8" #lyb_nocorr_n5000, ,lyb_nocorr, noB_onlyA, noB_n5000,uncorr, lyb_wR2_n5000, corrNR, zsubset3.8, gaussian #gaussian_n5000
 
 mock_or_obs = cat_name.split("/")[0]
-add_beta = True # only works on "noB" mocks, see line 188 in QuasarSpectrum.py
-add_ovi = True # also only works on mocks
-add_sithree = True # also only works on mocks
-subtract_metal_power = True
+add_beta = False # only works on "noB" mocks, see line 188 in QuasarSpectrum.py
+add_ovi = False # also only works on mocks
+add_sithree = False # also only works on mocks
+subtract_metal_power = False
 continuum_correction = False
 M = 1000 # Bootstrap samples, line 19 in boot_indo.py
 ##############################################################################################################
 
-remove_dla = True
+remove_dla = False
 if remove_dla:
     lya_dlas_in_lyaf = False
     lyb_dlas_in_lybf = False
@@ -47,15 +47,15 @@ if "n600" in tag:
 zmin = 3.0#3.4
 zmax = 4.2
 zbinlen = 7#5
-log_kbinning = True
+log_kbinning = False
 if log_kbinning:
     kmin = 10**-2.5 #3e-3
     kmax = 10**-1.2 #6e-2
     kbinlen = 13
-else:
-    kmin = 0.0 #3e-3 #0.0
-    kmax = 0.06 #- 3e-3#0.06 #0.06
-    kbinlen = 10
+else: #VID BINS
+    kmin = 3e-3 #0.0
+    kmax = 0.06-3e-3#0.06 #0.06
+    kbinlen = 19
 
 # Rescaling
 rescale_flux = 1.0
@@ -209,6 +209,19 @@ save_paper_OVI_path = "figures/paper_OVI_ratio.pdf"
 
 save_dla_ratio = True
 save_dla_ratio_path = "figures/paper_dla_ratio.pdf"
+
+save_paper_compare_vid = True
+save_paper_compare_vid_path = "figures/paper_compare_vid.pdf"
+
+save_paper_compare_pk_bv = True
+save_paper_compare_pk_bv_path = "figures/paper_compare_pk_bv.pdf"
+
+save_paper_compare_err_vid = True
+save_paper_compare_err_vid_path = "figures/paper_compare_err_vid.pdf"
+
+save_compare_mocks_bv = True
+save_compare_mocks_bv_path = "figures/compare_mocks_bv.pdf"
+
 
 
 

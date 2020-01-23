@@ -55,13 +55,15 @@ custom_lines = [Line2D([0], [0], color=colors[0], lw=9, marker=None),
 # pkdata = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_noOVI.csv")
 # pkdata_addedOVI = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_addedOVI.csv")
 pkdata = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_n5000_nothingadded.csv")
-pkdata_addedOVI = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_n5000_addedOVI.csv")
+pkdata_addedOVI = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_n5000_addedSiIIIOVI.csv")
+# pkdata_addedOVI = pd.read_csv("../output/OVI_final/pk_mocks_lyb_nocorr_n5000_addedOVI.csv")
 # pkdata_addedOVI = pd.read_csv("../output/OVI_final/pk_mocks_noB_addedB_addedOVI.csv")
 
 
 
 fig,ax = plt.subplots(1,3,sharex=True, sharey=True,gridspec_kw={'hspace': 0,'wspace': 0}) #ROW COLUMN
 
+plt.suptitle("OVI AND SiIII")
 fig.add_subplot(111, frameon=False)
 # hide tick and tick label of the big axes
 plt.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')

@@ -17,12 +17,12 @@ custom_lines = [Line2D([0], [0], color=colors[1], lw=9, marker=None),
                 Line2D([0], [0], color=colors[0], lw=9, marker=None),
                 Line2D([0], [0], color='k', lw=9, marker=None),
                 Line2D([0], [0], color='grey',lw=9,ls='--',marker=None)]
-legend_labels = ["BOSS+13","Iršič+17","Avg. Iršič+17","0.0015cos(500k)+0.008"]
+legend_labels = ["BOSS+13","Iršič+17","Avg. Iršič+17"]#,"0.0015cos(500k)+0.008"]
 
 names_boss = ["k","paa","pm","err_paa","err2"]
 data_boss = glob.glob("../data/BOSS_metals/pk_z*.txt")
 data_boss.sort()
-data_boss = data_boss[4:-1]
+data_boss = data_boss[4:-1] # redshifts 3.0 to 4.2
 # del data_boss[-1]
 
 names_sdss = ["k","paa","pm","err_paa"]
@@ -88,7 +88,7 @@ ax.errorbar(np.log10(opt.kbin_centers),np.log10(data_xshoot_avg*opt.kbin_centers
 # ax.plot(np.log10(opt.kbin_centers), np.log10(data_xshoot_avg*opt.kbin_centers),color='k',lw=5)
 fit_x = np.linspace(opt.kmin,opt.kmax,1000)
 fit_y = np.cos(500*fit_x-np.pi*0)
-ax.plot(np.log10(fit_x),np.log10(0.0015*fit_y+0.008),color='grey',lw=3,ls='--')
+ax.plot(np.log10(fit_x),np.log10(0.0017*fit_y+0.008),color='grey',lw=3,ls='--')
 
 ax.legend(custom_lines,legend_labels,fontsize=fontsize,loc='lower left',ncol=2,frameon=False)
 ax.tick_params(axis='both', which='major', labelsize=fontsize)

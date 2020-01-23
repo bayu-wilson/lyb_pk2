@@ -34,7 +34,7 @@ matplotlib.rcParams['ytick.major.width'] = tick_width
 matplotlib.rcParams['errorbar.capsize'] = 4
 ####################################################################################################
 labels = [r"$\sigma_{P_{\alpha \alpha}}/P_{\alpha \alpha}$",r"$\sigma_{P_{TT}}/P_{TT}$",
-          r"$\sigma_{P_{\alpha \beta}}/P_{\alpha \beta}$","data","mocks"]
+          r"$\sigma_{P_{\alpha \beta}}/P_{\alpha \beta}$","data","mocks/mocks_n5000",r"$\sigma_{real}/P_{real}$",r"$\widebar{ \sigma}_{boot}/P_{real}$"]
 #r"${\sigma_{\hat P_{\beta \beta}}}}$","data","mocks"]#,r"$P_{\beta \beta}$"]
                 #,, r"$P_{\alpha \beta}$",r"$P_{\beta \beta}$"]
 custom_lines = [Line2D([0], [0], color=colors[0], lw=9, marker=None),
@@ -42,11 +42,28 @@ custom_lines = [Line2D([0], [0], color=colors[0], lw=9, marker=None),
                 Line2D([0], [0], color=colors[2], lw=9, marker=None),
                 #Line2D([0], [0], color=colors[3], lw=9, marker=None),
                 Line2D([0], [0], color='k', ls='-'),
-                Line2D([0], [0], color='k', ls='--')]
+                Line2D([0], [0], color='k', ls='--'),
+                Line2D([0], [0], color='k', ls='-.'),
+                Line2D([0], [0], color='k', ls='dotted')]
 
 
-pkdata = pd.read_csv(inis.save_pk_with_err_path)
+pkdata = pd.read_csv("../output/pk_errboot_obs_corrNR.txt")
+# pkdata = pd.read_csv("../output/pk_errboot_obs_uncorr.txt")
+
+#inis.save_pk_with_err_path)
+# pkdata_mocks = pd.read_csv("../output/pk_errboot_mocks_lyb_nocorr.txt")
 pkdata_mocks = pd.read_csv("../output/pk_errboot_mocks_lyb_nocorr.txt")
+pkdata_mocks_big = pd.read_csv("../output/bootstrap_final/pk_errboot_mocks_lyb_nocorr_n5000.txt")
+
+mean_pk_table = np.reshape(np.loadtxt('../output/realizations/mean_pk.txt').T,(50,21,13))
+var_pk_table = np.reshape(np.loadtxt('../output/realizations/var_pk.txt').T,(50,21,13))
+p_xx_z = np.reshape(np.mean(mean_pk_table,axis=0),(3,7,13)) #paa,ptt,pab for 7 zbins and 13 kbins
+sigma_xx_z = np.reshape(np.std(mean_pk_table,axis=0),(3,7,13)) #sigma_aa,sigma_ptt,sigma_pab for 7 zbins and 13 kbins
+boot_sigma_xx_z = np.reshape(np.mean(np.sqrt(var_pk_table),axis=0),(3,7,13)) #mean of the std's
+sigma_boot_sigma_xx_z = np.reshape(np.std(np.sqrt(var_pk_table),axis=0),(3,7,13)) #std of the std's
+
+
+# pk_errboot_mocks_lyb_nocorr_n5000
 
 
 # plt.style.use('classic')
@@ -106,6 +123,15 @@ for i in range(2):
             err_paa_mocks,err_pab_mocks = t_mocks.err_paa.values, t_mocks.err_pab.values
             err_ptt_mocks,err_pbb_mocks = t_mocks.err_ptt.values,t_mocks.err_pbb.values
 
+
+            ### MOCKS ###
+            pkmask_mocks_big = (pkdata_mocks_big.z == opt.zbin_centers[zidx])
+            t_mocks_big = pkdata_mocks_big[pkmask_mocks_big]
+            k_mocks_big,paa_mocks_big,ptt_mocks_big = t_mocks_big.k.values,t_mocks_big.paa.values,t_mocks_big.ptt.values
+            pab_mocks_big,pbb_mocks_big = t_mocks_big.pab.values,t_mocks_big.pbb.values
+            err_paa_mocks_big,err_pab_mocks_big = t_mocks_big.err_paa.values, t_mocks_big.err_pab.values
+            err_ptt_mocks_big,err_pbb_mocks_big = t_mocks_big.err_ptt.values,t_mocks_big.err_pbb.values
+
             if (i == 0)&(j==2):
                 pass
             else:
@@ -115,16 +141,39 @@ for i in range(2):
                 #ax[i,j].plot(k_x,np.log10(err_pbb),color=colors[3])
 
                 ### mocks ###
-                ax[i,j].plot(k_x,err_paa_mocks/paa_mocks,color=colors[0],ls='--')
-                ax[i,j].plot(k_x,err_ptt_mocks/ptt_mocks,color=colors[1],ls='--')
-                ax[i,j].plot(k_x,err_pab_mocks/pab_mocks,color=colors[2],ls='--')
-                #ax[i,j].plot(k_x,np.log10(err_pbb_mocks),color=colors[3],ls='--')
-                #ax[i,j].set_yscale('log')
-                # ax[i,j].errorbar(k_x,np.log10(k*paa/np.pi),yerr=log_err_paa,color=colors[0], fmt='.')
-                # ax[i,j].errorbar(k_x*0.99,np.log10(k*ptt/np.pi),yerr=log_err_ptt,color=colors[1], fmt='.')
-                # ax[i,j].errorbar(k_x,np.log10(k*pab/np.pi),yerr=log_err_pab,color=colors[2], fmt='.')
-                #ax[i,j].errorbar(k_x,np.log10(k*pab/np.pi))
-                #ax[i,j].errorbar(k_x,k*pbb/np.pi,yerr=err_pbb*k/np.pi,color=colors[3], fmt='.')
+                ax[i,j].plot(k_x,err_paa_mocks/paa_mocks,color=colors[0],ls='--',alpha=0.3)
+                ax[i,j].plot(k_x,err_ptt_mocks/ptt_mocks,color=colors[1],ls='--',alpha=0.3)
+                ax[i,j].plot(k_x,err_pab_mocks/pab_mocks,color=colors[2],ls='--',alpha=0.3)
+
+
+                ### mocks n5000 ###
+                ax[i,j].plot(k_x,err_paa_mocks_big/paa_mocks_big*np.sqrt(50),color=colors[0],ls='--')
+                ax[i,j].plot(k_x,err_ptt_mocks_big/ptt_mocks_big*np.sqrt(50),color=colors[1],ls='--')
+                ax[i,j].plot(k_x,err_pab_mocks_big/pab_mocks_big*np.sqrt(50),color=colors[2],ls='--')
+
+
+
+                ### Realization stuff ###
+                ax[i,j].plot(k_x,boot_sigma_xx_z[2][zidx]/p_xx_z[2][zidx],color=colors[2],ls='dotted')
+                ax[i,j].plot(k_x,sigma_xx_z[2][zidx]/p_xx_z[2][zidx],color=colors[2],ls='-.')
+                ax[i,j].fill_between(x=k_x, y1=(boot_sigma_xx_z[2][zidx]-sigma_boot_sigma_xx_z[2][zidx])/p_xx_z[2][zidx],
+                                            y2=(boot_sigma_xx_z[2][zidx]+sigma_boot_sigma_xx_z[2][zidx])/p_xx_z[2][zidx],
+                                            color=colors[2],alpha=0.5)
+
+                ax[i,j].plot(k_x,boot_sigma_xx_z[1][zidx]/p_xx_z[1][zidx],color=colors[1],ls='dotted')
+                ax[i,j].plot(k_x,sigma_xx_z[1][zidx]/p_xx_z[1][zidx],color=colors[1],ls='-.')
+                ax[i,j].fill_between(x=k_x, y1=(boot_sigma_xx_z[1][zidx]-sigma_boot_sigma_xx_z[1][zidx])/p_xx_z[1][zidx],
+                                            y2=(boot_sigma_xx_z[1][zidx]+sigma_boot_sigma_xx_z[1][zidx])/p_xx_z[1][zidx],
+                                            color=colors[1],alpha=0.5)
+
+                ax[i,j].plot(k_x,boot_sigma_xx_z[0][zidx]/p_xx_z[0][zidx],color=colors[0],ls='dotted')
+                ax[i,j].plot(k_x,sigma_xx_z[0][zidx]/p_xx_z[0][zidx],color=colors[0],ls='-.')
+                ax[i,j].fill_between(x=k_x, y1=(boot_sigma_xx_z[0][zidx]-sigma_boot_sigma_xx_z[0][zidx])/p_xx_z[0][zidx],
+                                            y2=(boot_sigma_xx_z[0][zidx]+sigma_boot_sigma_xx_z[0][zidx])/p_xx_z[0][zidx],
+                                            color=colors[0],alpha=0.5)
+
+
+
                 ax[i,j].text(0.80, 0.90,"z={0}".format(opt.zbin_centers[zidx]) #0.80, 0.95
                                                           , ha='center', va='center',
                                                           transform=ax[i,j].transAxes,fontsize=20)
@@ -154,6 +203,7 @@ fig.delaxes(ax[0][2])
 ax[0,0].legend(custom_lines[:2],labels[:2],loc='upper left',ncol=1,frameon=False)
 ax[0,1].legend(custom_lines[2:3],labels[2:3],loc='upper left',ncol=1,frameon=False)
 ax[1,0].legend(custom_lines[3:5],labels[3:5],loc='upper left',ncol=1,frameon=False)
+ax[1,1].legend(custom_lines[5:],labels[5:],loc='upper left',ncol=1,frameon=False)
 
 
 # for i in ax[0,2].get_xticklabels():
