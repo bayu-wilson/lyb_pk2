@@ -86,7 +86,7 @@ else:
     kmax = inis.kmax #- 3e-3#0.06 #0.06
     kbinlen = inis.kbinlen
     kbin_centers = np.linspace(kmin,kmax,kbinlen)
-    dk = (kmax - kmin)/kbinlen
+    dk = (kmax - kmin)/(kbinlen-1)
     kbin_edges = np.linspace(kmin-dk/2,kmax+dk/2,kbinlen+1)
 
 # DLAs

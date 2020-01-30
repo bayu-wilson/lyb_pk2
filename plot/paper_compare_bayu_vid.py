@@ -47,13 +47,13 @@ custom_lines = [Line2D([0], [0], color=colors[0], lw=9, marker=None),
 
 
 names=['z','k','paa','err_paa','idk1','idk2','idk3']
-### OBS ###
-# bayu_data = pd.read_csv("../output/pk_obs_corrNR.csv")#pk_errboot_obs_corrNR.txt")
-# vid_data = pd.read_csv("../data/obs/vid_2020/pk_xs_final.txt",delim_whitespace=True,names=names)
+## OBS ###
+bayu_data = pd.read_csv("../output/pk_obs_corrNR.csv")#pk_errboot_obs_corrNR.txt")
+vid_data = pd.read_csv("../data/obs/vid_2020/Pk_xq_wRb.txt",delim_whitespace=True,names=names)
 
-### MOCKS ###
-bayu_data = pd.read_csv("../output/pk_mocks_lyb_wN_n5000.csv")#pk_errboot_obs_corrNR.txt")
-vid_data = pd.read_csv("../data/obs/vid_2020/Pk_n5000_wN.txt",delim_whitespace=True,names=names)
+# ### MOCKS ###
+# bayu_data = pd.read_csv("../output/pk_mocks_lyb_wR_n5000.csv")#pk_errboot_obs_corrNR.txt")
+# vid_data = pd.read_csv("../data/obs/vid_2020/Pk_n5000_wR.txt",delim_whitespace=True,names=names)
 
 
 # plt.style.use('classic')
@@ -109,7 +109,7 @@ for i in range(2):
                 vid_pkmask = (vid_data.z == opt.zbin_centers[zidx])
                 t2 = vid_data[vid_pkmask]
                 #k,paa,err_paa = t2.k.values,t2.paa.values,t2.err_paa.values
-                ax[i,j].plot(k_x,t2.paa.values[1:]/paa,color='k')
+                ax[i,j].plot(k_x,t2.paa.values/paa,color='k')
                 ax[i,j].plot(k_x,np.ones_like(k_x),color='gray',ls='--')
 
                 # ax[i,j].errorbar(k_x,np.log10(k*paa/np.pi),yerr=log_err_paa,color=colors[0], fmt='.')

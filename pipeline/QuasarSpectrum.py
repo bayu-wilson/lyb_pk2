@@ -171,7 +171,11 @@ class QuasarSpectrum(object):
             err_flux = qso_table.ferr.values/cont_table.flx.values
             # RMS RESOLUTION = FWHM/(2*sqrt(2ln(2)))
 
-            resolution = qso_table.res.values #jan7
+            if redshift < 3.7:
+                resolution = np.ones_like(qso_table.res.values)*20
+            if redshift > 3.7:
+                resolution = np.ones_like(qso_table.res.values)*11
+            #resolution = qso_table.res.values #jan7
             # print(name,resolution)
             #Commented on #jan7
             # #June 25th #Carswell

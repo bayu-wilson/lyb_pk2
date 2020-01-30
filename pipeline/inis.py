@@ -4,12 +4,12 @@ import os
 
 ##############################################################################################################
 #see line 86 in QuasarSpectrum.py for when `cat_name` gets used
-cat_name = "mocks/XQ-100_catalogue_n5000" #"obs/XQ-100_catalogue" #"mocks/XQ-100_catalogue_n100"
+cat_name = "obs/XQ-100_catalogue" #"obs/XQ-100_catalogue" #"mocks/XQ-100_catalogue_n100"
 #"mocks/XQ-100_catalogue_n600" #"obs/XQ-100_catalogue" #mocks/XQ-100_catalogue_n100 #mocks/XQ-100_catalogue_n5000
 # obs/XQ-100_catalogue #mocks/XQ-100_catalogue_n700
 
 #Most important use of `tag` in load_qso_data method in QuasarSpectrum.py. Line 113
-tag = "lyb_wNR_n5000" #"lyb_nocorr"#"corrNR"
+tag = "corrNR" #"lyb_nocorr"#"corrNR"
 #"gaussian_n600" #"lyb_nocorr_n700"#"zsubset3.8" #lyb_nocorr_n5000, ,lyb_nocorr, noB_onlyA, noB_n5000,uncorr, lyb_wR2_n5000, corrNR, zsubset3.8, gaussian #gaussian_n5000
 
 mock_or_obs = cat_name.split("/")[0]
