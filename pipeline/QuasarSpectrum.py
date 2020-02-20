@@ -10,9 +10,6 @@ import inis
 class QuasarSpectrum(object):
     all_names = None
     all_redshifts = None
-    # all_dla_NHI = None
-    # all_dla_names = None
-    # all_dla_redshifts = None
     dla_table = None
     nqso = None
     """Container for quasar spectra"""
@@ -47,8 +44,6 @@ class QuasarSpectrum(object):
         self.dloglambda = dloglambda
         self.redshift = redshift
         self.unnormalized_flux = unnormalized_flux
-        #self.mask_dla = mask_dla
-
     def plot_spectrum(self,norm=True):
         """
         Plots normalized or unnormalized qso spectrum.
@@ -83,7 +78,7 @@ class QuasarSpectrum(object):
         name : str
             Name of the quasar in text file.
         """
-        if tag.startswith('obs'): #What matters is what the tag starts/ends with
+        if tag.startswith('obs'): #What matters is what the tag starts/ends with. This is loading a catalog for OBS
             path_to_cat = "../data/obs/XQ-100_catalogue.txt"
             catalog_table = pd.read_csv(path_to_cat,delim_whitespace=True,usecols=(3,6),
                                 names = ("qso_name","redshifts"))
@@ -93,17 +88,8 @@ class QuasarSpectrum(object):
             dla_table = pd.read_csv(path_to_dlas,delim_whitespace=True,names=dla_colnames)
             qname_array,z_array = catalog_table['qso_name'].values,catalog_table['redshifts'].values
             nqso = 100
-            cls.dla_table = dla_table#.iloc[26:27]
-            #print()
-            # cls.dla_table = pd.DataFrame([dla_table.iloc[i] for i in [38,39,40]])
-            #[2,3,7,8,9,14,18,35]])
-            #dla_table.iloc[]
-            #.iloc[8:9] #dla_table#.iloc[:1] # CHANGE NOV 19 !!!!!!!!!!!!!!!!!!!!!!!!
-            #print(dla_table.iloc[8:9])
-            #cls.all_dla_NHI = dla_table.NHI.values
-            #cls.all_dla_names = dla_table.name.values
-            #cls.all_dla_redshifts = dla_table.z.values
-        elif tag.startswith('mocks'): #What matters is what the tag starts/ends with
+            cls.dla_table = dla_table
+        elif tag.startswith('mocks'): #This is loading a catalog for MOCKS
             cat_mask = int(tag.split("_n")[1]) == np.array([100,600,700,5000])
             #which_catalog = int(tag.endswith("n5000")) # index for `path_to_cat`
             path_to_cat = np.array(["../data/mocks/XQ-100_catalogue_n100.mock",

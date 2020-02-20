@@ -28,7 +28,7 @@ if remove_dla:
 
 wR2 = False # If True use original R2, if False, use wR column (11 km/s)
 log_kbinning = True
-redside_avg = True # if true then use avg flux on redside rather than continuum for normalized flux
+redside_avg = False # if true then use avg flux on redside rather than continuum for normalized flux
 ##############################################################################################################
 
 
@@ -91,7 +91,7 @@ save_kzq_pk_path = "../output/qsos_pk_{0}.txt".format(tag)
 #save masks bins July 31
 save_masks_path = "../output/qsos_masks_{0}.txt".format(tag)
 
-save_dla = True
+save_dla = False
 if remove_dla:
     if lya_dlas_in_lybf: # c
         save_dla_path = "../output/pk_REMOVING_DLAs_all.csv"

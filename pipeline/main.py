@@ -44,7 +44,7 @@ n_mf_msrmnts = len(mf_msrmnts)
 zbin_msr_matrix = np.zeros((opt.zbinlen,n_mf_msrmnts))
 # flux_pdf = [[] for tmp in range(opt.zbinlen)]
 # pdf_bins = np.arange(-0.025,1.05,.05)
-print("mf")
+print("Mean Flux Calculation")
 f = open(inis.save_kzq_mf_path,'w') #july10
 for zidx in range(opt.zbinlen):
     msrmnt_in_zbin =  np.zeros(n_mf_msrmnts)
@@ -107,7 +107,7 @@ for zidx in range(opt.zbinlen):
     zbin_msr_matrix[zidx] = msrmnt_in_zbin/count_in_zbin
 opt.updt(opt.zbinlen, opt.zbinlen)
 f.close() #july10
-print("Done!\n")
+print("Done\n")
 
 zbin_msr_matrix.T[3] = list(QuasarSpectrum.get_npow(mf=zbin_msr_matrix.T[0], # npow alpha 3
                                         nvar=zbin_msr_matrix.T[1],
@@ -170,7 +170,7 @@ pk_msrmnts = opt.pk_msrmnts
 n_pk_msrmnts = len(pk_msrmnts)
 
 znk_matrix = np.zeros((opt.zbinlen,n_pk_msrmnts,opt.kbinlen)) #  7 zbins,6 measurements, 20 kbins
-print("Pk")
+print("Power Spectra Calculation")
 f = open(inis.save_kzq_pk_path,'w') #"../output/qsos_pk.txt",'w') #july1
 for zidx in range(opt.zbinlen): #aug15 #aug20
     opt.updt(opt.zbinlen, zidx)
@@ -353,7 +353,6 @@ for i in range(1,opt.zbinlen):
 ########## SUBTRACTING METAL POWER ##########
 if inis.subtract_metal_power:
     metal_power = np.concatenate([np.loadtxt('../data/obs/pk_xs_avg.txt')]*opt.zbinlen) #subtracting metals again sept25
-
     x.Paa = x.Paa.values-metal_power
     x.Ptot = x.Ptot.values-metal_power
     #x.Pbb = x.Pbb.values-metal_power
