@@ -2,6 +2,8 @@
 *
 # Except this file
 !.gitignore
+!XQ-100/*
+!XQ-100_catalogue.txt
+!XQ-100_DLA_catalogue.txt
 
-!XQ-100
 
