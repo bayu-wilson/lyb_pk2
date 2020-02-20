@@ -48,7 +48,7 @@ custom_lines = [Line2D([0], [0], color=colors[0], lw=9, marker=None),
 
 names=['z','k','paa','err_paa','idk1','idk2','idk3']
 ## OBS ###
-bayu_data = pd.read_csv("../output/pk_obs_corrNR.csv")#pk_errboot_obs_corrNR.txt")
+bayu_data = pd.read_csv("../output/pk_obs_corrR.csv")#pk_errboot_obs_corrNR.txt")
 vid_data = pd.read_csv("../data/obs/vid_2020/Pk_xq_wRb.txt",delim_whitespace=True,names=names)
 
 # ### MOCKS ###

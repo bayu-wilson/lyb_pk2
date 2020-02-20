@@ -20,13 +20,15 @@ subtract_metal_power = False
 continuum_correction = False
 M = 1000 # Bootstrap samples, line 19 in boot_indo.py
 
-remove_dla = False
+remove_dla = True
 if remove_dla:
     lya_dlas_in_lyaf = False
     lyb_dlas_in_lybf = False
     lya_dlas_in_lybf = True
 
 wR2 = False # If True use original R2, if False, use wR column (11 km/s)
+log_kbinning = True
+redside_avg = True # if true then use avg flux on redside rather than continuum for normalized flux
 ##############################################################################################################
 
 
@@ -49,7 +51,6 @@ if "n600" in tag:
 zmin = 3.0#3.4
 zmax = 4.2
 zbinlen = 7#5
-log_kbinning = False
 if log_kbinning:
     kmin = 10**-2.5 #3e-3
     kmax = 10**-1.2 #6e-2
@@ -102,6 +103,9 @@ if remove_dla:
         pass
 else:
     save_dla_path = "../output/pk_KEEPING_DLAs.csv"
+
+save_redside_avg = True
+save_redside_avg_path = "../output/redside_avg.txt"
 
 ########################
 ###  Saving Figures  ###
@@ -223,6 +227,11 @@ save_paper_compare_err_vid_path = "figures/paper_compare_err_vid.pdf"
 
 save_compare_mocks_bv = True
 save_compare_mocks_bv_path = "figures/compare_mocks_bv.pdf"
+
+save_composite_spectra = True
+save_composite_spectra_path = "figures/comosite_spectra.pdf"
+
+
 
 
 

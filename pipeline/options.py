@@ -78,7 +78,7 @@ if inis.log_kbinning:
     kmax = inis.kmax #6e-2
     kbinlen = inis.kbinlen #13?
     kbin_centers = np.logspace(np.log10(kmin),np.log10(kmax),kbinlen)
-    dk = (np.log10(kmax) - np.log10(kmin))/kbinlen
+    dk = (np.log10(kmax) - np.log10(kmin))/(kbinlen-1) #feb4
     kbin_edges = np.logspace(np.log10(kmin)-dk/2,np.log10(kmax)+dk/2,kbinlen+1)
 
 else:
@@ -86,7 +86,7 @@ else:
     kmax = inis.kmax #- 3e-3#0.06 #0.06
     kbinlen = inis.kbinlen
     kbin_centers = np.linspace(kmin,kmax,kbinlen)
-    dk = (kmax - kmin)/(kbinlen-1)
+    dk = (kmax - kmin)/(kbinlen-1) #feb4
     kbin_edges = np.linspace(kmin-dk/2,kmax+dk/2,kbinlen+1)
 
 # DLAs

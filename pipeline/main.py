@@ -208,17 +208,17 @@ for zidx in range(opt.zbinlen): #aug15 #aug20
         # SWITCH #aug14
         #nchunks_a=2 # TEST CHANGE THIS
         for chunk_idx_a in range(nchunks_a):
-            #if qidx == 2999: #july 17
-            #    print(np.sum(zmask_a),np.where(zmask_a)[0],len(zmask_a),chunk_idx_a,opt.get_chunks(zmask_a),nchunks_a)
             zmask_a_sub = opt.get_chunks(zmask_a)[chunk_idx_a]
-            # if (qidx == 64)&(zidx==2):
-            #     #zmask_a_sub = zmask_a_sub[23:]
-            #     #zmask_a_sub = zmask_a_sub[22:]
-            #     print("\n remove dla?: ", inis.remove_dla)
-            #     print("nchunks: ", nchunks_a)
-            #     print("index chunk: ",chunk_idx_a)
-            #     print("npix: ",len(zmask_a_sub))
-            #     print(zmask_a_sub)
+
+            # if zidx == 3: #feb4
+            #     only_res = 23.60134842/(2*np.sqrt(2*np.log(2)))
+            #     mask = qso_arr[qidx].resolution[zmask_a_sub]>only_res
+            #     qso_arr[qidx].resolution[zmask_a_sub][mask]=qso_arr[qidx].resolution[zmask_a_sub][mask]*np.nan
+
+            # if opt.zbin_centers[zidx] < 3.7: #feb3
+            #     qso_arr[qidx].resolution[zmask_a_sub] = np.ones_like(qso_arr[qidx].resolution[zmask_a_sub])*20
+            # if opt.zbin_centers[zidx] > 3.7: #feb3
+            #     qso_arr[qidx].resolution[zmask_a_sub] = np.ones_like(qso_arr[qidx].resolution[zmask_a_sub])*11
 
 
             if np.sum(zmask_a_sub)>opt.min_pix:
@@ -228,6 +228,23 @@ for zidx in range(opt.zbinlen): #aug15 #aug20
                     kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges)
                     pk_sub = qso_arr[qidx].get_pk_subsets(kpix=kpix,pk=pk,zmask=zmask_a_sub,kmask=kmask,
                                                        corr_tag=tag,npow=npow)
+
+                    # if zidx==3:
+                    #     only_res = 20 #41.52075368/(2*np.sqrt(2*np.log(2))) # 20 means UV arm. 11 means VIS arm.
+                    #     mask = qso_arr[qidx].resolution[zmask_a_sub][kmask]==only_res
+                    #     pk_sub = pk_sub[mask]
+                    #if zidx == 3: #feb4
+                    # r1 = 23.60134842/(2*np.sqrt(2*np.log(2)))
+                    # r2 = 41.52075368/(2*np.sqrt(2*np.log(2)))
+                    # res_subset = qso_arr[qidx].resolution[zmask_a_sub][kmask]
+                    # if (np.any(res_subset>r1))&(np.any(res_subset<r2))&(zidx!=3):
+                    #     print(zidx)
+                        # only_res =  #23.60134842
+                        # mask = qso_arr[qidx].resolution[zmask_a_sub][kmask]==only_res
+                        # pk_sub = pk_sub[mask]
+                        #qso_arr[qidx].resolution[zmask_a_sub][mask]=qso_arr[qidx].resolution[zmask_a_sub][mask]*np.nan
+
+
                     msrmnt_in_kbin[1,kidx] += np.sum(pk_sub) #Paa
                     count_in_kbin[1,kidx] += len(pk_sub) #num is Paa
                     msrmnt_in_kbin[6,kidx] += len(pk_sub) # npix_aa

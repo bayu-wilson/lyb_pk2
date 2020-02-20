@@ -152,56 +152,62 @@ class QuasarSpectrum(object):
             unnormalized_flux=np.ones_like(qso_table.flx.values)*np.nan
             resolution = qso_table.res.values # june 24
         else:
-            #print(cls.dla_table.name)
-            released_path = "../data/obs/XQ-100/released/{0}_uvb-vis.txt".format(name)
-            continuum_path = "../data/obs/XQ-100/continuum/{0}_cont.txt".format(name)
-            qso_table = pd.read_csv(released_path, delim_whitespace=True, skiprows = 1,usecols=(0,1,2,3,4),
-                                    names = ("wav", "flx", "ferr", "res","dloglam"))
-            #print(qso_table)
-            cont_table = pd.read_csv(continuum_path, delim_whitespace=True, skiprows = 1,usecols=(0,1),
-                                    names = ("wav",'flx'))
-            mask_wave = (qso_table.wav.values>opt.lyb_min*(1+redshift))&(
-                       qso_table.wav.values<opt.lya_rest/opt.lyb_rest*opt.lyb_max*(1+redshift))&(
-                       qso_table.flx.values>opt.min_trans)
-            qso_table = qso_table[mask_wave]
-            cont_table = cont_table[mask_wave]
-            wavelength = qso_table.wav.values
-            unnormalized_flux = qso_table.flx.values
-            flux = unnormalized_flux/cont_table.flx.values
-            err_flux = qso_table.ferr.values/cont_table.flx.values
-            # RMS RESOLUTION = FWHM/(2*sqrt(2ln(2)))
+            if inis.redside_avg == True: #feb13
+                released_path = "../data/obs/XQ-100/released/{0}_uvb-vis.txt".format(name) #feb13
+                qso_table = pd.read_csv(released_path, delim_whitespace=True, skiprows = 1,usecols=(0,1,2,3,4), #feb13
+                                        names = ("wav", "flx", "ferr", "res","dloglam")) #feb13
+                mask_wave = (qso_table.wav.values>opt.lyb_min*(1+redshift))&( #feb13
+                           qso_table.wav.values<opt.lya_rest/opt.lyb_rest*opt.lyb_max*(1+redshift))&( #feb13
+                           qso_table.flx.values>opt.min_trans) #feb13
+                qso_table = qso_table[mask_wave] #feb13
+                wavelength = qso_table.wav.values #feb13
+                unnormalized_flux = qso_table.flx.values #feb13
+                flux = qso_table.flx.values*1
+                err_flux = qso_table.ferr.values #feb13
+                resolution = np.ones_like(wavelength)
+                m1 = wavelength<=5599.14
+                resolution[m1] = 41.52075368/(2*np.sqrt(2*np.log(2))) #converting FWHM to sigma_R
+                resolution[~m1] = 23.60134842/(2*np.sqrt(2*np.log(2)))
 
-            if redshift < 3.7:
-                resolution = np.ones_like(qso_table.res.values)*20
-            if redshift > 3.7:
-                resolution = np.ones_like(qso_table.res.values)*11
-            #resolution = qso_table.res.values #jan7
-            # print(name,resolution)
-            #Commented on #jan7
-            # #June 25th #Carswell
-            # resolution = np.ones_like(wavelength)
-            # m1 = wavelength<=5599.14
-            # resolution[m1] = 41.52075368/(2*np.sqrt(2*np.log(2)))
-            # resolution[~m1] = 23.60134842/(2*np.sqrt(2*np.log(2)))
+                ### normalized flux with redside_avg ###
+                zpix = wavelength/opt.lya_rest - 1 # 3.6,4.8
+                redside_avg = np.loadtxt("../output/redside_avg.txt")[:-2] #only using first 4
+                temp_edges = np.array([2.0,3.7,3.9,4.1,5.0])
+                for i in range(len(temp_edges)-1):
+                    mask = (zpix>temp_edges[i])&(zpix<temp_edges[i+1])
+                    flux[mask] = unnormalized_flux[mask]/redside_avg[i]
+                    err_flux[mask] = err_flux[mask]/redside_avg[i]
 
+            else:
+                released_path = "../data/obs/XQ-100/released/{0}_uvb-vis.txt".format(name)
+                continuum_path = "../data/obs/XQ-100/continuum/{0}_cont.txt".format(name)
+                qso_table = pd.read_csv(released_path, delim_whitespace=True, skiprows = 1,usecols=(0,1,2,3,4),
+                                        names = ("wav", "flx", "ferr", "res","dloglam"))
+                #print(qso_table)
+                cont_table = pd.read_csv(continuum_path, delim_whitespace=True, skiprows = 1,usecols=(0,1),
+                                        names = ("wav",'flx'))
+                mask_wave = (qso_table.wav.values>opt.lyb_min*(1+redshift))&(
+                           qso_table.wav.values<opt.lya_rest/opt.lyb_rest*opt.lyb_max*(1+redshift))&(
+                           qso_table.flx.values>opt.min_trans)
+                qso_table = qso_table[mask_wave]
+                cont_table = cont_table[mask_wave]
+                wavelength = qso_table.wav.values
+                unnormalized_flux = qso_table.flx.values
+                flux = unnormalized_flux/cont_table.flx.values
+                err_flux = qso_table.ferr.values/cont_table.flx.values
 
-
+                # resolution = qso_table.res.values #jan7 #RESOLUTION FROM FILE #RMS RESOLUTION (sigma_R) = FWHM/(2*sqrt(2ln(2)))
+                # #June 25th #Carswell
+                resolution = np.ones_like(wavelength)
+                m1 = wavelength<=5599.14
+                resolution[m1] = 41.52075368/(2*np.sqrt(2*np.log(2))) #converting FWHM to sigma_R
+                resolution[~m1] = 23.60134842/(2*np.sqrt(2*np.log(2)))
         if "wR2" in tag and not inis.wR2:
             # Using new column
             resolution = np.ones_like(qso_table.res.values)*11 * 0.2 #/ 2.3#(2*np.sqrt(2*np.log(2)))
-        # else:
-        #     # RMS RESOLUTION = FWHM/(2*sqrt(2ln(2)))
-        #     resolution = np.ones_like(wavelength)
-        #     m1 = wavelength<=5599.14
-        #     resolution[m1] = 41.52075368/(2*np.sqrt(2*np.log(2)))
-        #     resolution[~m1] = 23.60134842/(2*np.sqrt(2*np.log(2)))
-        #     #resolution = qso_table.res.values
-        dloglambda = qso_table.dloglam.values #/ 2
-
+        dloglambda = qso_table.dloglam.values
         if ("noB" in tag)&(inis.add_beta): #july21
-            #print("1")
             flux = flux**rescale_flux #np.exp(rescale_flux*np.log(flux)) #flux**rescale_flux #july20
-
         return cls(name=name,redshift=redshift,
                    wavelength=wavelength, flux=flux, err_flux=err_flux,
                    resolution=resolution,dloglambda=dloglambda,
@@ -321,6 +327,14 @@ class QuasarSpectrum(object):
         owave_rest = rwave_rest*(1+self.redshift)
         mask = ((self.wavelength>owave_min)&(self.wavelength<owave_max)&
                 (self.flux>opt.min_trans)&(zpix>=zedges[zidx])&(zpix<zedges[zidx+1]))
+        # if zidx==3: #feb6 #feb11 commented again
+        #     only_res = 20 #41.52075368/(2*np.sqrt(2*np.log(2))) # 20 means UV arm. 11 means VIS arm.
+        #     #mask = self.resolution==only_res
+        #     mask = ((self.wavelength>owave_min)&(self.wavelength<owave_max)&
+        #         (self.flux>opt.min_trans)&(zpix>=zedges[zidx])&(zpix<zedges[zidx+1])&
+        #         (self.resolution==only_res))
+
+
 
         if inis.cat_name.startswith('obs'):
             if (name in self.dla_table.name.values)&(inis.remove_dla):
@@ -370,7 +384,7 @@ class QuasarSpectrum(object):
         # print(self.dloglambda[mask])
         # import sys
         # sys.exit()
-        rf_k = np.fft.fft(rf_x)*dv #fdsfghjkgfdghjkhgfdfghjklhgfdfghjklhgfdghjk
+        rf_k = np.fft.fft(rf_x)*dv
         N = len(rf_k)
         V = N*dv
         dk = 2*np.pi/V

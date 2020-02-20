@@ -44,7 +44,8 @@ custom_lines = [Line2D([0], [0], color=colors[0], lw=9, marker=None),
 
 
 #pkdata = pd.read_csv(inis.save_pk_with_err_path)
-pkdata = pd.read_csv("../output/continuum_correction/pk_errboot_obs_corrNR_continuum_uncorrected.txt")
+# pkdata = pd.read_csv("../output/continuum_correction/pk_errboot_obs_corrNR_continuum_uncorrected.txt")
+pkdata = pd.read_csv("../final_results/pk_errboot_obs_corrNR.txt")
 pkdata_corrcont = pd.read_csv("../output/continuum_correction/pk_errboot_obs_corrNR_continuum_corrected.txt")
 
 # plt.style.use('classic')

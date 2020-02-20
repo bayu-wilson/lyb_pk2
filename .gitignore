@@ -1,6 +1,25 @@
 # Don't add these directories
-data/
-output/
+
+
+output/*pdf
+output/continuum_correction
+data/sims
+data/BOSS_metals
+data/models
+data/*.txt
+data/*.gz
+data/mocks/*
+data/obs/*
+data/realizations
+output/qsos
+output/dla_comparison
+output/bootstrap_final
+output/dla_comparison
+output/more_dla_tests
+output/OVI_final
+output/*.txt
+output/*.txt
+output/realizations
 papers/
 trash/
 testing/
@@ -8,7 +27,7 @@ testing/
 *.ipynb
 plot/sightlines/
 plot/old/
-plot/figures/
+plot/figures/*
 __pycache__/
 .DS_Store/
 *.icloud
