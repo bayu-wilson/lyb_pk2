@@ -1,17 +1,11 @@
 #!/usr/bin/env python
 
 import os
-
-##############################################################################################################
-#see line 86 in QuasarSpectrum.py for when `cat_name` gets used
-cat_name = "obs/XQ-100_catalogue" #"obs/XQ-100_catalogue" #"mocks/XQ-100_catalogue_n100"
-#"mocks/XQ-100_catalogue_n600" #"obs/XQ-100_catalogue" #mocks/XQ-100_catalogue_n100 #mocks/XQ-100_catalogue_n5000
-# obs/XQ-100_catalogue #mocks/XQ-100_catalogue_n700
-
-#Most important use of `tag` in load_qso_data method in QuasarSpectrum.py. Line 113
-tag = "corrNR" #"lyb_nocorr"#"corrNR"
-#"gaussian_n600" #"lyb_nocorr_n700"#"zsubset3.8" #lyb_nocorr_n5000, ,lyb_nocorr, noB_onlyA, noB_n5000,uncorr, lyb_wR2_n5000, corrNR, zsubset3.8, gaussian #gaussian_n5000
-
+########################################################################################
+############################ Control Center entire pipeline ############################
+########################################################################################
+cat_name = "obs/XQ-100_catalogue"
+tag = "corrNR"
 mock_or_obs = cat_name.split("/")[0]
 add_beta = False # only works on "noB" mocks, see line 188 in QuasarSpectrum.py
 add_ovi = False # also only works on mocks
@@ -19,18 +13,20 @@ add_sithree = False # also only works on mocks
 subtract_metal_power = False
 continuum_correction = False
 M = 1000 # Bootstrap samples, line 19 in boot_indo.py
-
 remove_dla = True
-if remove_dla:
-    lya_dlas_in_lyaf = False
-    lyb_dlas_in_lybf = False
-    lya_dlas_in_lybf = True
-
 wR2 = False # If True use original R2, if False, use wR column (11 km/s)
 log_kbinning = True
 redside_avg = False # if true then use avg flux on redside rather than continuum for normalized flux
-##############################################################################################################
+########################################################################################
+#See line 86 in QuasarSpectrum.py for when `cat_name` gets used
+#Common `cat_name`: "obs/XQ-100_catalogue", "mocks/XQ-100_catalogue_n100","obs/XQ-100_catalogue", "mocks/XQ-100_catalogue_n100", "mocks/XQ-100_catalogue_n5000"
+#Most important use of `tag` in load_qso_data method in QuasarSpectrum.py. Line 113
+#Common `tag`: "lyb_nocorr","corrNR","lyb_nocorr_n5000","gaussian_n600","noB_onlyA", "noB_n5000", "uncorr", "gaussian"
 
+if remove_dla: #details on where I want to remove dla's
+    lya_dlas_in_lyaf = False
+    lyb_dlas_in_lybf = False
+    lya_dlas_in_lybf = True
 
 
 ntag = "n100" # default
@@ -45,12 +41,10 @@ if "n600" in tag:
     ntag = "n600"
     nqso = 600
 
-# zmin = 3.0
-# zmax = 4.2
-# zbinlen = 7
-zmin = 3.0#3.4
+#Choosing reshift and wavenumber binning
+zmin = 3.0 #3.4
 zmax = 4.2
-zbinlen = 7#5
+zbinlen = 7 #5
 if log_kbinning:
     kmin = 10**-2.5 #3e-3
     kmax = 10**-1.2 #6e-2
@@ -107,6 +101,9 @@ else:
 save_redside_avg = True
 save_redside_avg_path = "../output/redside_avg.txt"
 
+save_flux_pdf = False
+save_flux_pdf_path = "../output/flux_pdf_lya.txt"
+
 ########################
 ###  Saving Figures  ###
 ########################
@@ -152,10 +149,6 @@ if remove_dla:
         pass
 else:
     save_dla_fig_path = "figures/pk_KEEPING_DLAs.pdf"
-# if remove_dla:
-#     save_dla_fig_path = "figures/pk_REMOVING_DLAs.pdf".format(ntag)
-# else:
-#     save_dla_fig_path = "figures/pk_KEEPING_DLAs.pdf".format(ntag)
 
 # PAPER PLOTS AND STUFF
 
@@ -229,12 +222,4 @@ save_compare_mocks_bv = True
 save_compare_mocks_bv_path = "figures/compare_mocks_bv.pdf"
 
 save_composite_spectra = True
-save_composite_spectra_path = "figures/comosite_spectra.pdf"
-
-
-
-
-
-
-# save_paper_ratio_v2 = False
-# save_paper_ratio_v2_path = "figures/paper_ratio_v2.pdf"
+save_composite_spectra_path = "figures/composite_spectra.pdf"

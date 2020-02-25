@@ -4,7 +4,7 @@ import numpy as np
 import sys
 import inis
 
-
+#Cosmological Parameters
 c_kms = 2.99792458e5 #km/s
 h = 0.678
 H_0 = h*100 #km/s/Mpc
@@ -12,7 +12,7 @@ omega_b = 0.0484
 omega_cdm = 0.2596
 omega_m0 = omega_b + omega_cdm
 
-# LYMAN ALPHA
+#LYMAN ALPHA
 lya_min = 1045 # 1159.11 # 1045 #aug2
 lya_max = 1185 # 1201.78 # 1185 #aug2
 lya_rest =  1215.67
@@ -20,7 +20,7 @@ f_osc_lya = 0.4162
 xs_alpha = f_osc_lya * lya_rest
 v_alpha = 2271 #km/s
 
-# LYMAN BETA
+#LYMAN BETA
 lyb_min = 978 # 881.717 # 978 #aug2
 lyb_max = 1014 # 1014 # 999.8 # 1014 #aug2
 lyb_rest = 1025.72
@@ -28,15 +28,17 @@ f_osc_lyb = 0.0791
 xs_beta = f_osc_lyb * lyb_rest
 v_beta = -1801 #km/s
 
-# print((xs_beta/xs_alpha))
-# print(f_osc_lya/f_osc_lyb)
 
-# O VI
+#O VI
 ovi_min = 978
 ovi_max = 1014
-ovi_rest_d1 = 1038 # 1032
-ovi_rest_d2 = 1032
+ovi_rest_d1 = 1031.91 # 1032
+fosc_ovi_d1 = 0.13290
+ovi_rest_d2 = 1037.61
+fosc_ovi_d2 = 0.06609
 xs_ovi = 10**(-2.5) * xs_alpha
+ovi_factor = fosc_ovi_d2/fosc_ovi_d1
+
 
 #Si III tau_SIII = 10^-3.5 to 10^-3  tau_HI"  SiIII, lambda= 1206.5 \AA
 sithree_min = 1045 # 1159.11 # 1045 #aug2
@@ -47,7 +49,7 @@ xs_sithree = 10**(-3.5) * xs_alpha
 # https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Si%20III&limits_type=0&low_w=1200&upp_w=1250&unit=0&submit=Retrieve%20Data&de=0&format=0&line_out=0&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&tsb_value=0&A_out=0&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&level_id=014003.000007
 
 
-# REDSHIFT BINS
+#REDSHIFT BINS
 zmin = inis.zmin
 zmax = inis.zmax
 zbinlen = inis.zbinlen
@@ -55,24 +57,15 @@ zbin_centers = np.round(np.linspace(zmin,zmax,zbinlen),2)
 dz = zbin_centers[1]-zbin_centers[0]
 zbin_edges = np.linspace(zmin-dz/2,zmax+dz/2,zbinlen+1)
 
-# # TO GET LYB MEAN FLUX
-# zmin_mf = 3.0 #inis.zmin
-# zmax_mf = inis.zmax
-# zbinlen_mf = inis.zbinlen+2
-# zbin_centers_mf = np.round(np.linspace(zmin_mf,zmax_mf,zbinlen_mf),2)
-# dz_mf = zbin_centers_mf[1]-zbin_centers_mf[0]
-# zbin_edges_mf = np.linspace(zmin_mf-dz_mf/2,zmax_mf+dz_mf/2,zbinlen_mf+1)
+#flux pdf
+pdf_bins = np.arange(-0.025,1.05,.05)
 
 mf_msrmnts = ['mf_a', 'nvar_a','dloglambda_a', 'npow_a',
            'mf_tot', 'nvar_tot','dloglambda_tot', 'npow_tot','z','mf_b',
            'var_atot','npow_atot']
 pk_msrmnts = ['k','Paa','Ptot','Pab','Qab','Pbb','npix_aa','npix_tt','npix_ab','z'] #sept25
 
-# tiny_dz = dz/10
-# tiny_zbinlen = int((zmax_edge-zmin_edge)/tiny_dz+0.5) #7 bin centers
-# tiny_zbin_edges = np.round(np.linspace(zmin_edge,zmax_edge,tiny_zbinlen+1),2)
-
-# Wavenumbers
+#Wavenumbers
 if inis.log_kbinning:
     kmin = inis.kmin #3e-3
     kmax = inis.kmax #6e-2
@@ -89,10 +82,10 @@ else:
     dk = (kmax - kmin)/(kbinlen-1) #feb4
     kbin_edges = np.linspace(kmin-dk/2,kmax+dk/2,kbinlen+1)
 
-# DLAs
+#DLAs
 DLAcat_file = "Data/XQ-100_DLA_catalogue.txt"
 
-# Bad Pixels
+#Bad Pixels
 min_pix = 100
 min_flux = -1e-15
 min_trans = -100
@@ -171,6 +164,7 @@ def find_EW(NHI,line):
         return W_beta #angstroms
 
 def how_many_chunks(mask):
+    #See line ~185 in main.py
     increases,decreases = 0,0
     idx_inc = []
     idx_dec = []
@@ -196,6 +190,7 @@ def how_many_chunks(mask):
     #return np.max([increases,decreases])
 
 def get_chunks(mask):
+    #Used in line ~190 of main.py
     chunk_edges = []
     for i in range(len(mask)-1):
         if mask[i+1]>mask[i]:
@@ -229,6 +224,3 @@ def find_res_uncertainty(k,z,pk):
             sigmaR = 10.02256986
         res_uncertainty_array[i]=(2*(k[i]*sigmaR)**2*rel_err_sigmaR*pk[i])
     return res_uncertainty_array
-
-
-# print(comoving_distance(10**(-2)))

@@ -6,85 +6,83 @@ import numpy as np
 import pandas as pd
 import options as opt
 from scipy.interpolate import griddata
-import copy
 
 cat_name = inis.cat_name
 tag = inis.tag
-rescale_flux = inis.rescale_flux #0.1 #0.1#0.1 #0.1 #0.0 #0.1
-print(cat_name)
-print(tag)
+rescale_flux = inis.rescale_flux #typically I am not rescaling the flux so this is one. If I am, it would be on mocks.
+print("Catalogue:", cat_name)
+print("Tag:", tag, "\n")
 
-QuasarSpectrum.load_cat(cat_name)
+# In line ~109 and ~335 there is 'RuntimeWarning: invalid value encountered in true_divide'
+np.seterr(divide='ignore', invalid='ignore') # I am ignoring this error because it is not important
+
+##############################
+######## Loading data ########
+##############################
+QuasarSpectrum.load_cat(cat_name) # loading catalog using QuasarSpectrum class method
 nqso = QuasarSpectrum.nqso
 print("Loading Data")
 qso_arr = []
-
-for i in range(nqso):
+for i in range(nqso): #looping through each quasar filepath to load it into an array of nqso objects
     q = QuasarSpectrum.load_qso_data(i,tag=tag,rescale_flux=rescale_flux)
-    if ("noB" in tag)&(inis.add_beta): # adding Lyb
-        q.get_new_forest(rescale_flux=rescale_flux,wrange =
-            (opt.lyb_min,opt.lyb_max,opt.lyb_rest, opt.xs_beta))
-    if inis.cat_name.startswith('mocks')&(inis.add_ovi): # adding OVI
-        q.get_new_forest(rescale_flux=rescale_flux,wrange =
-            (opt.ovi_min,opt.ovi_max,opt.ovi_rest_d1, opt.xs_ovi))
-        q.get_new_forest(rescale_flux=rescale_flux,wrange =
-            (opt.ovi_min,opt.ovi_max,opt.ovi_rest_d2, opt.xs_ovi))
-    if inis.cat_name.startswith('mocks')&(inis.add_sithree): #adding SiIII
-        q.get_new_forest(rescale_flux=rescale_flux,wrange =
-            (opt.sithree_min,opt.sithree_max,opt.sithree_rest_d1, opt.xs_sithree))
-        # q.get_new_forest(rescale_flux=rescale_flux,wrange =
-        #     (opt.sithree_min,opt.sithree_max,opt.sithree_rest_d2, opt.xs_sithree))
+    ######################################
+    # Adding more lines to mocks spectra #
+    ######################################
+    #Lyb
+    if ("noB" in tag)&(inis.add_beta): # adding Lyb to mocks
+        q.get_new_forest(rescale_flux=rescale_flux,wrange = (opt.lyb_min,opt.lyb_max,opt.lyb_rest, opt.xs_beta))
+    #OVI
+    if inis.cat_name.startswith('mocks')&(inis.add_ovi):
+        q.get_new_forest(rescale_flux=rescale_flux,wrange = (opt.ovi_min,opt.ovi_max,opt.ovi_rest_d1, opt.xs_ovi)) #ovi_rest_d1 = 1032
+        q.get_new_forest(rescale_flux=rescale_flux,wrange = (opt.ovi_min,opt.ovi_max,opt.ovi_rest_d2*opt.ovi_factor, opt.xs_ovi)) #ovi_rest_d2 = 1038
+    #SiIII
+    if inis.cat_name.startswith('mocks')&(inis.add_sithree):
+        q.get_new_forest(rescale_flux=rescale_flux,wrange = (opt.sithree_min,opt.sithree_max,opt.sithree_rest_d1, opt.xs_sithree))
     qso_arr.append(q)
-
 print("Done!\n")
-print("nchunks: ", len(qso_arr))
 
-mf_msrmnts = opt.mf_msrmnts
+###################################
+###### Mean flux calculation ######
+###################################
+mf_msrmnts = opt.mf_msrmnts #list of columns names for the mean flux data table
 n_mf_msrmnts = len(mf_msrmnts)
-zbin_msr_matrix = np.zeros((opt.zbinlen,n_mf_msrmnts))
-# flux_pdf = [[] for tmp in range(opt.zbinlen)]
-# pdf_bins = np.arange(-0.025,1.05,.05)
+zbin_msr_matrix = np.zeros((opt.zbinlen,n_mf_msrmnts)) # 7 zbins by 12 measurements
+lya_flux_pdf = [[] for tmp in range(opt.zbinlen)]
+pdf_bins = opt.pdf_bins
 print("Mean Flux Calculation")
-f = open(inis.save_kzq_mf_path,'w') #july10
+f = open(inis.save_kzq_mf_path,'w') #july10 #opening a file that I'll write to... relating to mean flux measurements. (This makes is easier to do bootstraps.)
 for zidx in range(opt.zbinlen):
-    msrmnt_in_zbin =  np.zeros(n_mf_msrmnts)
-    count_in_zbin = np.zeros(n_mf_msrmnts)
+    #looping through redshift bins
+    msrmnt_in_zbin =  np.zeros(n_mf_msrmnts) #measurements in the z'th bin
+    count_in_zbin = np.zeros(n_mf_msrmnts)   #counts in the zidx'th bin
     opt.updt(opt.zbinlen, zidx)
-
-    zbin_msrmnt = [[] for idx in range(n_mf_msrmnts)]
     for i in range(nqso):
+        #looping through each quasar
         name = qso_arr[i].name
-        zpix_a = qso_arr[i].get_zpix(opt.lya_rest)
-        mask = qso_arr[i].get_zmask(forest=(opt.lya_min,opt.lya_max,opt.lya_rest),
-                                     zpix=zpix_a,zidx=zidx,zedges=opt.zbin_edges,name=name)
-        #FLUX PDF
-        #flux_pdf[zidx].append(np.histogram(qso_arr[i].flux[mask],bins=pdf_bins)[0])#/np.nansum(mask))
-
-        zpix_b = qso_arr[i].get_zpix(opt.lyb_rest) # Here is where I want to change optical depth of lyb pixels
+        zpix_a = qso_arr[i].get_zpix(opt.lya_rest) #redshifts of LYA forest for the i'th quasar
+        mask = qso_arr[i].get_zmask(forest=(opt.lya_min,opt.lya_max,opt.lya_rest),zpix=zpix_a,zidx=zidx,zedges=opt.zbin_edges,name=name) #masks forest and zbin
+        zpix_b = qso_arr[i].get_zpix(opt.lyb_rest) #redshifts of LYB forest for the i'th quasar
         mask_b = qso_arr[i].get_zmask(forest=(opt.lyb_min,opt.lyb_max,opt.lyb_rest),
                                      zpix=zpix_b,zidx=zidx,zedges=opt.zbin_edges,name=name)
-
-
-        za = zpix_a[mask]#qso_arr[i].wavelength[mask]/opt.lya_rest-1
-        ztot = zpix_b[mask_b]#qso_arr[i].wavelength[mask_b]/opt.lyb_rest-1
+        za = zpix_a[mask] #redshifts of LYA forest for the i'th quasar AND in zidx'th bin
+        ztot = zpix_b[mask_b] #redshifts of LYB forest for the i'th quasar AND in zidx'th bin
         try:
-            new_af_mask = (za>np.min(ztot))&(za<np.max(ztot))
-            new_bf_mask = (ztot>np.min(za))&(ztot<np.max(za))
+            new_af_mask = (za>np.min(ztot))&(za<np.max(ztot)) #where the LYA forest z-pixels are within the upper and lower redshift bounds of the LYB forest
+            new_bf_mask = (ztot>np.min(za))&(ztot<np.max(za)) #where the LYB forest z-pixels are within the upper and lower redshift bounds of the LYA forest
             ferra = qso_arr[i].err_flux[mask][new_af_mask]
             ferrtot = qso_arr[i].err_flux[mask_b][new_bf_mask]
 
-            # Interpolating to the smaller one
+            #Interpolating to the forest with the least number of pixels
             if len(ferrtot)<=len(ferra):
                 ferra = griddata(za[new_af_mask],ferra,ztot[new_bf_mask],method='linear')
-                ferra = ferra[np.isfinite(ferra)]
+                ferra = ferra[np.isfinite(ferra)] #if you don't do this, something goes wrong... I think
             else:
                 ferrtot = griddata(ztot[new_bf_mask],ferrtot,za[new_af_mask],method='linear')
                 ferrtot = ferrtot[np.isfinite(ferrtot)]
-            #print(np.nansum(ferra*ferrtot))
-            msrmnt_in_zbin[10]+= np.sum(ferra*ferrtot)*0 #CHANGED 5/3/19 after meeting with Matt
-            # var lya-tot 10
+            msrmnt_in_zbin[10]+= np.sum(ferra*ferrtot)*0 #CHANGED 5/3/19 after meeting with Matt. Flux covariance between alpha and total should be zero (I think)
             count_in_zbin[10] += len(ferra)                         # len lya_tot 10
         except:
+            #sometimes the two forests don't overlap
             pass
 
         msrmnt_in_zbin[0]+= np.sum(qso_arr[i].flux[mask])          # mf lya 0
@@ -100,31 +98,26 @@ for zidx in range(opt.zbinlen):
         msrmnt_in_zbin[6]+= np.sum(qso_arr[i].dloglambda[mask_b])  # dloglam tot 6
         count_in_zbin[6] += np.sum(mask_b)                         # len tot 6
 
-        s = "{0:g} {1:g} {2:g} {3:g} {4:g} {5:g}".format(i,opt.zbin_centers[zidx],np.sum(qso_arr[i].flux[mask]), np.sum(mask),np.sum(qso_arr[i].flux[mask_b]),np.sum(mask_b)) #july10
-        #"{4:g} 0 {0:g} {1:g} {2:g} {3:g}".format(opt.zbin_centers[zidx],opt.kbin_centers[kidx],
-        #                                np.sum(pk_sub),len(pk_sub),qidx) #july1 #average of pab_sub??
+        #writing results per quasar to an external file so we can calculate bootstraps faster
+        s = "{0:g} {1:g} {2:g} {3:g} {4:g} {5:g}".format(i,opt.zbin_centers[zidx],np.sum(qso_arr[i].flux[mask]), np.sum(mask),np.sum(qso_arr[i].flux[mask_b]),np.sum(mask_b))
         f.write(s+'\n') #july10
-    zbin_msr_matrix[zidx] = msrmnt_in_zbin/count_in_zbin
+
+        lya_flux_pdf[zidx].append(np.histogram(qso_arr[i].flux[mask],bins=pdf_bins)[0]/np.nansum(mask))#FLUX PDF
+    zbin_msr_matrix[zidx] = msrmnt_in_zbin/count_in_zbin #since we are want the MEAN of these measurements per zbin, I SUMMED them up and then DIVIDED them by the counts
 opt.updt(opt.zbinlen, opt.zbinlen)
-f.close() #july10
+f.close()
 print("Done\n")
 
-zbin_msr_matrix.T[3] = list(QuasarSpectrum.get_npow(mf=zbin_msr_matrix.T[0], # npow alpha 3
-                                        nvar=zbin_msr_matrix.T[1],
-                                        dloglambda=zbin_msr_matrix.T[2]))
-zbin_msr_matrix.T[7] = list(QuasarSpectrum.get_npow(mf=zbin_msr_matrix.T[4], # npow total 7
-                                        nvar=zbin_msr_matrix.T[5],
-                                        dloglambda=zbin_msr_matrix.T[6]))
+zbin_msr_matrix.T[3] = list(QuasarSpectrum.get_npow(mf=zbin_msr_matrix.T[0], nvar=zbin_msr_matrix.T[1], dloglambda=zbin_msr_matrix.T[2]))
+zbin_msr_matrix.T[7] = list(QuasarSpectrum.get_npow(mf=zbin_msr_matrix.T[4], nvar=zbin_msr_matrix.T[5],dloglambda=zbin_msr_matrix.T[6]))
 zbin_msr_matrix.T[8] = opt.zbin_centers # zbins 8
-zbin_msr_matrix.T[11] = ((zbin_msr_matrix.T[4]*zbin_msr_matrix.T[0])**(-1)* # npow lya-tot 11
-                          zbin_msr_matrix.T[10] * np.pi / (opt.kmax-opt.kmin))
+zbin_msr_matrix.T[11] = ((zbin_msr_matrix.T[4]*zbin_msr_matrix.T[0])**(-1)*zbin_msr_matrix.T[10] * np.pi / (opt.kmax-opt.kmin)) #npow lya-tot 11... I think this is zero.
 
-mf_output_df = pd.DataFrame(zbin_msr_matrix)
+mf_output_df = pd.DataFrame(zbin_msr_matrix) #I prefer working with pandas dataframes
 mf_output_df.columns = mf_msrmnts
 
-zab_centers = opt.find_za(opt.zbin_centers) #converting lyb zbins to the equivalent, lower, lya zbins
+zab_centers = opt.find_za(opt.zbin_centers) #transforming the lyb zbins to the equivalent, lower, lya zbins.
 len_zab = len(zab_centers)
-
 
 #Gives corresponding lya bin for each lyb bin. organized by increasing z.
 bin_zab=np.ones(len_zab)*np.nan
@@ -133,6 +126,7 @@ for i in range(len_zab):
         if (zab_centers[i]>opt.zbin_edges[j])&(zab_centers[i]<opt.zbin_edges[j+1]):
             bin_zab[i] = (opt.zbin_centers[j])
 
+#Calulating mean flux for LYB forest by dividing TOT mean flux with corresponding, lower z, LYA mean flux
 mf_lyb = np.ones(len_zab)*np.nan #nan until proven otherwise
 for i in range(len_zab):
     if bin_zab[i] in mf_output_df.z.values:
@@ -141,9 +135,7 @@ for i in range(len_zab):
         mf_lyb[i] = mf_output_df.mf_tot[ztot_idx]/mf_output_df.mf_a[za_idx]
 mf_output_df['mf_b'] = mf_lyb
 
-### CONTINUUM CORRECTION
-# F_true = F_est * (1-deltaC/C_true)
-# print(mf_output_df['mf_a'])
+# CONTINUUM CORRECTION. F_true = F_est * (1-deltaC/C_true)
 if inis.continuum_correction:
     C_a_ratio = opt.continuum_correction(opt.zbin_centers)
     C_t_ratio = opt.continuum_correction(opt.zbin_centers-0.2)
@@ -152,41 +144,39 @@ if inis.continuum_correction:
     mf_output_df['mf_tot'] = mf_output_df['mf_tot']*(1-C_t_ratio)
     mf_output_df['mf_b'] = mf_output_df['mf_b']*(1-C_b_ratio)
 
+#Flux pdf for lya (for fun)... possibly a bug
+if inis.save_flux_pdf:
+    lya_fpdf_arr = np.reshape(np.concatenate((lya_flux_pdf)),(nqso,opt.zbinlen,len(pdf_bins)-1))
+    fpdf_x = np.concatenate([np.nanmean(lya_fpdf_arr,0)[i] for i in range(opt.zbinlen)])
+    np.savetxt(inis.save_flux_pdf_path,fpdf_x)
 
-
-# print(mf_output_df['mf_a'])
-
-# mf_output_df.mf_a  = mf_output_df.mf_a*0 + 1.0 #aug15 set mf to zero for test for matt
-# mf_output_df.mf_tot  = mf_output_df.mf_tot*0 + 1.0 #aug15 set mf to zero for test for matt
-# mf_output_df.mf_b  = mf_output_df.mf_b*0 + 1.0 #aug15 set mf to zero for test for matt
-
-# mf_output_df = pd.read_csv("../output/test_dla_jun20.csv")
-
-################################################################################
-################        Power Spectrum          ################################
-################################################################################
+########################
+#### Power Spectrum ####
+########################
 
 pk_msrmnts = opt.pk_msrmnts
 n_pk_msrmnts = len(pk_msrmnts)
 
-znk_matrix = np.zeros((opt.zbinlen,n_pk_msrmnts,opt.kbinlen)) #  7 zbins,6 measurements, 20 kbins
+znk_matrix = np.zeros((opt.zbinlen,n_pk_msrmnts,opt.kbinlen)) #  7 zbins, 10 measurements, 20 kbins
 print("Power Spectra Calculation")
-f = open(inis.save_kzq_pk_path,'w') #"../output/qsos_pk.txt",'w') #july1
-for zidx in range(opt.zbinlen): #aug15 #aug20
+f = open(inis.save_kzq_pk_path,'w') #july1
+for zidx in range(opt.zbinlen): #aug20
+    #looping through the zidx'th zbin
     opt.updt(opt.zbinlen, zidx)
-    msrmnt_in_kbin = np.zeros((n_pk_msrmnts,opt.kbinlen))
-    count_in_kbin = np.zeros((n_pk_msrmnts,opt.kbinlen))
+    msrmnt_in_kbin = np.zeros((n_pk_msrmnts,opt.kbinlen)) #measurements in the k'th bin
+    count_in_kbin = np.zeros((n_pk_msrmnts,opt.kbinlen)) #counts in the k'th bin
     msrmnt_in_kbin[0] = opt.kbin_centers
-    count_in_kbin[0] = np.ones_like(opt.kbin_centers) # these have to be ones.I just divide by one later.
-    count_in_kbin[6] = np.ones_like(opt.kbin_centers)
-    count_in_kbin[7] = np.ones_like(opt.kbin_centers)
-    count_in_kbin[8] = np.ones_like(opt.kbin_centers)
+    count_in_kbin[0] = np.ones_like(opt.kbin_centers) # these have to be ones. I just divide by one later.
+    count_in_kbin[6] = np.ones_like(opt.kbin_centers) #counts for npix_aa
+    count_in_kbin[7] = np.ones_like(opt.kbin_centers) #counts for npix_tt
+    count_in_kbin[8] = np.ones_like(opt.kbin_centers) #counts for npix_ab
     msrmnt_in_kbin[-1] = np.ones_like(opt.kbin_centers) * opt.zbin_centers[zidx]
-    count_in_kbin[-1] = np.ones_like(opt.kbin_centers)
-    #if zidx == 6: # Checking why z4.2 sucks. 6/13/19
-    #    f_big = open("N_cross.txt",'w')
+    count_in_kbin[-1] = np.ones_like(opt.kbin_centers) #counts for redshift bins
     for qidx in range(nqso): #aug20
+        #looping through the qidx'th quasar
+        ###################################################################
         #################### LYA FOREST: P ALPHA ALPHA ####################
+        ###################################################################
         name = qso_arr[qidx].name
         zpix_a = qso_arr[qidx].get_zpix(opt.lya_rest)
         zmask_a = qso_arr[qidx].get_zmask(forest=(opt.lya_min,opt.lya_max,opt.lya_rest),
@@ -194,109 +184,64 @@ for zidx in range(opt.zbinlen): #aug15 #aug20
         zpix_tot = qso_arr[qidx].get_zpix(opt.lyb_rest)
         zmask_tot = qso_arr[qidx].get_zmask(forest=(opt.lyb_min,opt.lyb_max,opt.lyb_rest),
                                         zpix=zpix_tot,zidx=zidx,zedges=opt.zbin_edges,name=name)
-        nchunks_a = opt.how_many_chunks(zmask_a)
+        nchunks_a = opt.how_many_chunks(zmask_a) #usually 1
         nchunks_tot = opt.how_many_chunks(zmask_tot)
 
-        # if zidx == 2: #aug20
-        #     debug = np.column_stack((qso_arr[qidx].wavelength,qso_arr[qidx].flux,#aug20
-        #                             zmask_a,zmask_tot))#aug20
-        #
-        #     np.savetxt("../output/qsos/q{:02d}_z3.8_masks_full_forest.txt".format(qidx),debug) #ff #aug20
-            #np.savetxt("../output/qsos/q{:02d}_z3.8_masks_match_lyb.txt".format(qidx),debug)
-
-
-        # SWITCH #aug14
-        #nchunks_a=2 # TEST CHANGE THIS
         for chunk_idx_a in range(nchunks_a):
+            #looping through each chunk. Probably 1. maybe 2. not more than 3.
             zmask_a_sub = opt.get_chunks(zmask_a)[chunk_idx_a]
-
-            # if zidx == 3: #feb4
-            #     only_res = 23.60134842/(2*np.sqrt(2*np.log(2)))
-            #     mask = qso_arr[qidx].resolution[zmask_a_sub]>only_res
-            #     qso_arr[qidx].resolution[zmask_a_sub][mask]=qso_arr[qidx].resolution[zmask_a_sub][mask]*np.nan
-
-            # if opt.zbin_centers[zidx] < 3.7: #feb3
-            #     qso_arr[qidx].resolution[zmask_a_sub] = np.ones_like(qso_arr[qidx].resolution[zmask_a_sub])*20
-            # if opt.zbin_centers[zidx] > 3.7: #feb3
-            #     qso_arr[qidx].resolution[zmask_a_sub] = np.ones_like(qso_arr[qidx].resolution[zmask_a_sub])*11
-
-
             if np.sum(zmask_a_sub)>opt.min_pix:
+                #auto-power if passes minimum pized constraint
                 kpix,pk = qso_arr[qidx].get_autopower(mf_output_df.mf_a[zidx],zmask_a_sub)
-                for kidx in range(opt.kbinlen): #aug15 #aug20
+                for kidx in range(opt.kbinlen):
                     npow = mf_output_df.npow_a.values[zidx]
                     kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges)
-                    pk_sub = qso_arr[qidx].get_pk_subsets(kpix=kpix,pk=pk,zmask=zmask_a_sub,kmask=kmask,
-                                                       corr_tag=tag,npow=npow)
+                    pk_sub = qso_arr[qidx].get_pk_subsets(kpix=kpix,pk=pk,zmask=zmask_a_sub,kmask=kmask,corr_tag=tag,npow=npow) #pk in the kidx'th kbin
+                    msrmnt_in_kbin[1,kidx] += np.sum(pk_sub) #adding paa in k,z bin for the qidx'th quasar
+                    count_in_kbin[1,kidx] += len(pk_sub) #adding number of paa pixels
+                    msrmnt_in_kbin[6,kidx] += len(pk_sub) ##adding number of npix_aa pixels
 
-                    # if zidx==3:
-                    #     only_res = 20 #41.52075368/(2*np.sqrt(2*np.log(2))) # 20 means UV arm. 11 means VIS arm.
-                    #     mask = qso_arr[qidx].resolution[zmask_a_sub][kmask]==only_res
-                    #     pk_sub = pk_sub[mask]
-                    #if zidx == 3: #feb4
-                    # r1 = 23.60134842/(2*np.sqrt(2*np.log(2)))
-                    # r2 = 41.52075368/(2*np.sqrt(2*np.log(2)))
-                    # res_subset = qso_arr[qidx].resolution[zmask_a_sub][kmask]
-                    # if (np.any(res_subset>r1))&(np.any(res_subset<r2))&(zidx!=3):
-                    #     print(zidx)
-                        # only_res =  #23.60134842
-                        # mask = qso_arr[qidx].resolution[zmask_a_sub][kmask]==only_res
-                        # pk_sub = pk_sub[mask]
-                        #qso_arr[qidx].resolution[zmask_a_sub][mask]=qso_arr[qidx].resolution[zmask_a_sub][mask]*np.nan
-
-
-                    msrmnt_in_kbin[1,kidx] += np.sum(pk_sub) #Paa
-                    count_in_kbin[1,kidx] += len(pk_sub) #num is Paa
-                    msrmnt_in_kbin[6,kidx] += len(pk_sub) # npix_aa
-
-                    s = "{4:g} 0 {0:g} {1:g} {2:g} {3:g}".format(opt.zbin_centers[zidx],opt.kbin_centers[kidx],
-                                                    np.sum(pk_sub),len(pk_sub),qidx) #july1 #average of pab_sub??
+                    s = "{4:g} 0 {0:g} {1:g} {2:g} {3:g}".format(opt.zbin_centers[zidx],opt.kbin_centers[kidx], np.sum(pk_sub),len(pk_sub),qidx) #july1 #writing to external file
+                    #0 means paa
                     f.write(s+'\n') #july1
 
-        # SWITCH #aug14
-        # Loop through chunks again (using zmask_tot)
-        # LYB FOREST: P TOTAL TOTAL
+        ###################################################################
+        #################### LYB FOREST: P TOTAL TOTAL ####################
+        ###################################################################
         for chunk_idx_tot in range(nchunks_tot):
             zmask_tot_sub = opt.get_chunks(zmask_tot)[chunk_idx_tot]
-            #if (qidx == 60)&(zidx==4):
-                #zmask_a_sub = zmask_a_sub[23:]
-                #zmask_a_sub = zmask_a_sub[22:]
-                # print("\n remove dla?: ", inis.remove_dla)
-                # print("nchunks: ", nchunks_tot)
-                # print("index chunk: ",chunk_idx_tot)
-                # print("npix: ",len(zmask_tot_sub))
-                # print(zmask_tot_sub)
-
-
             if (np.sum(zmask_tot_sub)>opt.min_pix):
                 kpix,pk = qso_arr[qidx].get_autopower(mf_output_df.mf_tot[zidx],zmask_tot_sub)
-                for kidx in range(opt.kbinlen): #aug15 #aug20
+                for kidx in range(opt.kbinlen):
                     npow = mf_output_df.npow_tot.values[zidx]
                     kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges)
-                    pk_sub = qso_arr[qidx].get_pk_subsets(kpix=kpix,pk=pk,zmask=zmask_tot_sub,kmask=kmask,
-                                                       corr_tag=tag,npow=npow)
-                    msrmnt_in_kbin[2,kidx] += np.sum(pk_sub) #aug15
-                    count_in_kbin[2,kidx] += len(pk_sub)
-                    msrmnt_in_kbin[7,kidx] += len(pk_sub) #npix_tt #sept25
+                    pk_sub = qso_arr[qidx].get_pk_subsets(kpix=kpix,pk=pk,zmask=zmask_tot_sub,kmask=kmask,corr_tag=tag,npow=npow)
+                    msrmnt_in_kbin[2,kidx] += np.sum(pk_sub) #adding ptot in k,z bin for the qidx'th quasar
+                    count_in_kbin[2,kidx] += len(pk_sub) #adding number of ptot pixels
+                    msrmnt_in_kbin[7,kidx] += len(pk_sub) #adding number of npix_tt pixels
 
-                    s = "{4:g} 1 {0:g} {1:g} {2:g} {3:g}".format(opt.zbin_centers[zidx],opt.kbin_centers[kidx],
-                                                    np.sum(pk_sub),len(pk_sub), qidx) #july1 #average of pab_sub??
+                    s = "{4:g} 1 {0:g} {1:g} {2:g} {3:g}".format(opt.zbin_centers[zidx],opt.kbin_centers[kidx],np.sum(pk_sub),len(pk_sub),qidx)
+                    #1 means ptt
                     f.write(s+'\n') #july1
 
-
         # Loop through more chunks here. Check zmask_tot and zmask_a CROSS POWER
+        ####################################################################
+        #################### CROSS-POWER: P ALPHA-TOTAL ####################
+        ####################################################################
         idx_a = 0
         idx_tot = 0
         while (idx_tot < nchunks_tot)&(idx_a < nchunks_a):
+            #Keep looping until there are no more chunks!
             if (nchunks_a>0)&(nchunks_tot>0):
-                ztot = zpix_tot[opt.get_chunks(zmask_tot)[idx_tot]]
+                #only proceed if both forests have non-zero chunks!
                 za = zpix_a[opt.get_chunks(zmask_a)[idx_a]]
-                ztot_min = np.min(ztot)
-                ztot_max = np.max(ztot)
+                ztot = zpix_tot[opt.get_chunks(zmask_tot)[idx_tot]]
                 za_min = np.min(za)
                 za_max = np.max(za)
-                mask_chk_a = (zpix_a>np.max([ztot_min,za_min]))&(zpix_a<np.min([ztot_max,za_max]))
-                mask_chk_tot = (zpix_tot>np.max([ztot_min,za_min]))&(zpix_tot<np.min([ztot_max,za_max]))
+                ztot_min = np.min(ztot)
+                ztot_max = np.max(ztot)
+                mask_chk_a = (zpix_a>np.max([ztot_min,za_min]))&(zpix_a<np.min([ztot_max,za_max])) #mask for alpha chunk
+                mask_chk_tot = (zpix_tot>np.max([ztot_min,za_min]))&(zpix_tot<np.min([ztot_max,za_max])) #mask for beta chunk
                 if (np.sum(mask_chk_a)>opt.min_pix)&(np.sum(mask_chk_tot)>opt.min_pix):
                     kpix,pab,qab,dlam,resa,resb = qso_arr[qidx].cross_pk_fft(mask_lya=mask_chk_a,mask_lyb=mask_chk_tot,
                                           mf_lya=mf_output_df.mf_a[zidx],
@@ -305,270 +250,69 @@ for zidx in range(opt.zbinlen): #aug15 #aug20
                     for kidx in range(opt.kbinlen): #aug20
                         kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges)
                         pab_sub,qab_sub = qso_arr[qidx].get_xpk_subsets(kpix,pab,qab,dlam,resa,resb,tag,npow,kmask)
-                        ##########################################
-                        # HERE IS WHERE I NEED TO WRITE OUT POWER VALUES TO ANOTHER FILE!!
 
-                        #for i in range(len(qso_arr[qidx].wavelength[zmask_a])): #july1
                         s = "{4:g} 2 {0:g} {1:g} {2:g} {3:g}".format(opt.zbin_centers[zidx],opt.kbin_centers[kidx],
                                                         np.sum(pab_sub),len(pab_sub), qidx) #july1 #average of pab_sub??
-                        f.write(s+'\n') #july1
-                        ##########################################
-
+                        f.write(s+'\n')
                         msrmnt_in_kbin[3,kidx] += np.sum(pab_sub)
                         count_in_kbin[3,kidx] += len(pab_sub)
                         msrmnt_in_kbin[4,kidx] += np.sum(qab_sub)
                         count_in_kbin[4,kidx] += len(qab_sub)
                         msrmnt_in_kbin[8,kidx] += len(pab_sub) #npix_ab #sept25
-                if za_max<ztot_min: # no overlap
+                if za_max<ztot_min: # no overlap, increase alpha index to try to match redshift of ztot
                     idx_a +=1
                     idx_tot +=0
-                elif ztot_max<za_min:
+                elif ztot_max<za_min: # opposite way of no overlap, increase beta index to match redshift of z-alpha
                     idx_a +=0
                     idx_tot +=1
-                else:
+                else: # lya dla will always be in lyb forest. but lyb dla could possibly not be in lya forest (absorbs at low-z)
                     idx_tot +=1
-
             else:
                 break
     znk_matrix[zidx] = msrmnt_in_kbin/count_in_kbin
 f.close() #july1
-# f_new.close() #july31
-
-# f_big.close() # Checking why z4.2 sucks. 6/13/19
 opt.updt(opt.zbinlen, opt.zbinlen)
 print("Done!\n")
 
-# Finding Lyman beta power
+#Finding Lyman beta power
 for i in range(len_zab):
     if bin_zab[i] in opt.zbin_centers:
         za_idx = np.where(opt.zbin_centers == bin_zab[i])[0][0]
         znk_matrix[i][5] = znk_matrix[i][2]-znk_matrix[za_idx][1]
 
-# Making 3d pk matrix into 2d pk data frame
+#Making 3d pk matrix into 2d pk data frame
 x = pd.DataFrame(znk_matrix[0].T,columns=pk_msrmnts)
 for i in range(1,opt.zbinlen):
     x = x.append(pd.DataFrame(znk_matrix[i].T,columns=pk_msrmnts))
 
 
-########## SUBTRACTING METAL POWER ##########
+########## SUBTRACTING REDSIDE METAL POWER ##########
 if inis.subtract_metal_power:
     metal_power = np.concatenate([np.loadtxt('../data/obs/pk_xs_avg.txt')]*opt.zbinlen) #subtracting metals again sept25
     x.Paa = x.Paa.values-metal_power
     x.Ptot = x.Ptot.values-metal_power
-    #x.Pbb = x.Pbb.values-metal_power
-#############################################
+    #x.Pbb = x.Pbb.values-metal_power #redside metals won't affect beta power. contribution cancels out
 
-# Saving routine
-if inis.save_mf:
+if inis.save_mf: #Saving mean flux
     mf_output_df.to_csv(inis.save_mf_path,index=False)
 
-if inis.save_pk:
+if inis.save_pk: #Saving power specta
     x.to_csv(inis.save_pk_path,index=False)
-if inis.save_dla:
+if inis.save_dla: #Saving power spectra with a tag notating whether or not dla's were removed
     x.to_csv(inis.save_dla_path,index=False)
 
-print("OVI Added?: ", inis.add_ovi)
-print("SiIII Added?: ", inis.add_sithree)
+print("OVI added?: ", inis.add_ovi)
+print("SiIII added?: ", inis.add_sithree)
+print("LYB added?: ", inis.add_beta)
 if (inis.remove_dla)&inis.cat_name.startswith('obs'):
     print("DLA's removed?: ", inis.remove_dla)
 else:
     print("DLA's removed?: False")
 print("Metals Subtracted?: ", inis.subtract_metal_power) #see line 310
 print("Continuum Corrected?: ", inis.continuum_correction)
+print("Log-binning for wavenumber (k)?: ", inis.log_kbinning)
 print("saved pre-boot mf file here: ", inis.save_kzq_mf_path)
 print("saved pre-boot pk file here: ", inis.save_kzq_pk_path)
 print("saved mf here: ", inis.save_mf_path)
 print("saved pf here: ", inis.save_pk_path)
 print("---- Script complete ----")
-
-
-# print(qso_arr[99].resolution)
-    #print(i)
-#     if inis.remove_dla:
-#         #DLAs
-#         m = q.mask_dla
-#         if opt.how_many_chunks(m) == 0:
-#             qso_arr.append(q)
-#         else:
-#             #print(i)
-#             for j in range(opt.how_many_chunks(m)):
-#                 q_test = copy.deepcopy(q)
-#                 q_test.get_chunks(j)
-#                 qso_arr.append(q_test)
-#     else:
-#         qso_arr.append(q)
-# if inis.remove_dla:
-#     nqso = len(qso_arr)
-
-                    #print(idx_a)
-                #if (ztot_max<za_max):
-                # idx_tot +=1
-                    #print(idx_tot)
-                    #print(idx_tot)
-                #if np.min([ztot_max,za_max]) == za_max:
-                #    idx_tot+=1
-                #    print(idx_tot)
-                #if np.min([ztot_max,za_max]) == za_max:
-                #    idx_a +=1
-
-        # if nchunks_a == nchunks_tot: # DONT DELETE
-        #     for chunk_idx_x in range(nchunks_a):
-        #         zmask_a_sub = opt.get_chunks(zmask_a)[chunk_idx_x]
-        #         zmask_tot_sub = opt.get_chunks(zmask_tot)[chunk_idx_x]
-        #         if (np.sum(zmask_a_sub)>opt.min_pix)&(np.sum(zmask_tot_sub)>opt.min_pix):
-        #             kpix,pab,qab,dlam,res = qso_arr[qidx].cross_pk_fft(mask_lya=zmask_a_sub,mask_lyb=zmask_tot_sub,
-        #                                   mf_lya=mf_output_df.mf_a[zidx],
-        #                                   mf_lyb=mf_output_df.mf_tot[zidx])
-        #             npow = mf_output_df.npow_atot.values[zidx]
-        #             for kidx in range(opt.kbinlen):
-        #                 kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges)
-        #                 pab_sub,qab_sub = qso_arr[qidx].get_xpk_subsets(kpix,pab,qab,dlam,res,tag,npow,kmask)
-        #                 msrmnt_in_kbin[3,kidx] += np.nansum(pab_sub)
-        #                 count_in_kbin[3,kidx] += len(pab_sub)
-        #                 msrmnt_in_kbin[4,kidx] += np.sum(qab_sub)
-        #                 count_in_kbin[4,kidx] += len(qab_sub)
-        #                 msrmnt_in_kbin[7,kidx] += len(pab_sub) #npix_ab
-
-        # if nchunks_a != nchunks_tot: # DONT DELETE
-        #     min_nchunk = np.min(nchunks_a,nchunks_tot)
-        #     for chunk_idx_x in range(min_nchunk):
-        #         zmask_a_sub = opt.get_chunks(zmask_a)[chunk_idx_x]
-        #         zmask_tot_sub = opt.get_chunks(zmask_tot)[chunk_idx_x]
-        #         if (np.sum(zmask_a_sub)>opt.min_pix)&(np.sum(zmask_tot_sub)>opt.min_pix):
-        #             kpix,pab,qab,dlam,res = qso_arr[qidx].cross_pk_fft(mask_lya=zmask_a_sub,mask_lyb=zmask_tot_sub,
-        #                                   mf_lya=mf_output_df.mf_a[zidx],
-        #                                   mf_lyb=mf_output_df.mf_tot[zidx])
-        #             npow = mf_output_df.npow_atot.values[zidx]
-        #             for kidx in range(opt.kbinlen):
-        #                 kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges)
-        #                 pab_sub,qab_sub = qso_arr[qidx].get_xpk_subsets(kpix,pab,qab,dlam,res,tag,npow,kmask)
-        #                 msrmnt_in_kbin[3,kidx] += np.nansum(pab_sub)
-        #                 count_in_kbin[3,kidx] += len(pab_sub)
-        #                 msrmnt_in_kbin[4,kidx] += np.sum(qab_sub)
-        #                 count_in_kbin[4,kidx] += len(qab_sub)
-        #                 msrmnt_in_kbin[7,kidx] += len(pab_sub) #npix_ab
-
-
-
-# (mf_output_df.mf_tot*mf_output_df.mf_a)**(-1)*np.sum()
-# print(mf_output_df)
-# print(x)
-# print(x[x.z==4.2])
-
-
-# test_dlambda = np.log10(qso_arr[0].wavelength[2])-np.log10(qso_arr[0].wavelength[1])
-# print(test_dlambda)
-# print(np.log10(test_dlambda))
-# print(qso_arr[0].ferr)
-# sys.exit()
-
-        #kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges)
-        #    if (('corrNR' in tag) or
-        #         ('corrR' in tag) or
-        #         ('wR' in tag) or
-        #         ('wNR' in tag)):
-        #         #dloglam = np.median(qso_arr[qidx].dloglambda)
-        #         dv = opt.c_kms*np.log(10)*dlam[kmask]
-        #         res_new = res[kmask]
-        #         #R = np.median(qso_arr[qidx].resolution)
-        #         pab_sub,qab_sub =pab[kmask],qab[kmask]
-        #         pab_sub = pab_sub/opt.window(k=kpix[kmask],p=dv,R=res_new)**2
-        #         qab_sub = qab_sub/opt.window(k=kpix[kmask],p=dv,R=res_new)**2
-        #         #print(opt.window(k=kpix[kmask],p=dv,R=res_new)**2)
-        #     if (('corrNR' in tag) or
-        #         ('corrN' in tag) or
-        #         ('wN' in tag) or
-        #         ('wNR' in tag)):
-        #             a
-        #
-        #     else:
-        #         pab_sub,qab_sub =pab[kmask],qab[kmask]
-
-
-            #pab_sub = qso_arr[qidx].get_pk_subsets(kpix=kpix,pk=pab,zmask=zmask_tot,kmask=kmask,
-            #                                   corr_tag=tag,npow=None)#npow)
-            #print(len(kmask),len(zmask_tot),len(pab),len(kpix))
-            #sys.exit()
-            #qab_sub = qso_arr[qidx].get_pk_subsets(kpix=kpix,pk=qab,zmask=zmask_tot,kmask=kmask,
-            #                                   corr_tag=tag,npow=npow)
-            #qab_sub =qab[kmask]
-
-
-            # msrmnt_in_kbin[3,kidx] += np.nansum(pab_sub) #remove!
-            # #print(np.nansum(pab_sub))
-            # count_in_kbin[3,kidx] += len(pab_sub)
-            # msrmnt_in_kbin[4,kidx] += np.sum(qab_sub) #remove!
-            # count_in_kbin[4,kidx] += len(qab_sub)
-            #
-            # msrmnt_in_kbin[6,kidx] += len(pab_sub)
-
-
-
-
-            # Checking if `how_many_chunks` works and if chunks are okay 6/19/19
-            # if opt.how_many_chunks(zmask_a)>1: #mask is basically mask_a
-            #     # print(zmask_a[zmask_a][0])
-            #     # print("{0}".format(zmask_a[zmask_a][0]))
-            #     f = open("test{0}{1}.txt".format(qidx,zidx),'w')
-            #     for i in range(len(qso_arr[qidx].wavelength)):
-            #         s = "{0:g} {1:g} {2}".format(qso_arr[qidx].wavelength[i],
-            #                                     qso_arr[qidx].flux[i],
-            #                                     zmask_a[i])
-            #         #print(zmask_a[zmask_a][i])
-
-            #     f.write(s+'\n')
-            # f.close()
-            # np.save
-            # import sys
-            # sys.exit()
-            # print(i,zidx)
-
-
-            # TEST_NAME = "J0234-1806" # Checking why z4.2 sucks. 6/13/19
-            #chunks_a[chnk_idx]
-            #     if (qso_arr[qidx].name == TEST_NAME) & (zidx==6):
-            #         f = open("test.txt",'w')
-            #         for i in range(len(qso_arr[qidx].wavelength[zmask_a])):
-            #             s = "{0:g} {1:g}".format(qso_arr[qidx].wavelength[zmask_a][i],
-            #                                         qso_arr[qidx].flux[zmask_a][i])
-            #             f.write(s+'\n')
-            #         f.close()
-
-
-
-
-        # if (qso_arr[qidx].name == TEST_NAME) & (zidx==6): # Checking why z4.2 sucks. 6/13/19
-        #     print(opt.how_many_chunks(qso_arr[qidx].mask_dla))
-        #     print(inis.remove_dla, np.sum(zmask_a),np.sum(zmask_tot))
-        #Cross power
-            #print(np.sum(zmask_a),np.sum(zmask_tot))
-            # if (qso_arr[qidx].name == TEST_NAME) & (zidx==6): # Checking why z4.2 sucks. 6/13/19
-            #     print("asdfasdf")
-            #     if inis.remove_dla:
-            #         f = open("test_cross_remove_dla.txt",'w')
-            #     else:
-            #         f = open("test_cross_keep_dla.txt",'w')
-            #     for i in range(len(qso_arr[qidx].wavelength[zmask_tot])):
-            #         s = "{0:g} {1:g}".format(qso_arr[qidx].wavelength[zmask_tot][i],
-            #                                     qso_arr[qidx].flux[zmask_tot][i])
-            #         f.write(s+'\n')
-            #     f.close()
-
-                #print(np.array(za)[0])
-                # print(ztot)
-                # print(np.sum(mask_chk_a))
-                # print(np.sum(mask_chk_tot))
-                # f = open("test_a.txt",'w')
-                # for i in range(len(za)):
-                #     #print(za[i],mask_chk_a[i])
-                #     s = "{0} {1}".format(za[i],qso_arr[qidx].flux[opt.get_chunks(zmask_a)[idx_a]][i])
-                #     f.write(s+'\n')
-                # f.close()
-                # f = open("test_tot.txt",'w')
-                # for i in range(len(ztot)):
-                #     #print(ztot[i],mask_chk_tot[i])
-                #     s = "{0} {1}".format(ztot[i],qso_arr[qidx].flux[opt.get_chunks(zmask_tot)[idx_tot]][i])
-                #     f.write(s+'\n')
-                # f.close()
-                # import sys
-                # sys.exit()

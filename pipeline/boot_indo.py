@@ -13,8 +13,6 @@ qtable_pk = np.loadtxt(inis.save_kzq_pk_path)
 #quasar index, type of power measurement (numbered from 0-2 for paa,ptt, and pab),
 #redshift, wavenumber (k), sum of power in k,z bin, sum of pixels in k,z bin.
 
-# opt.zbinlen = 5 #sept12
-
 M = inis.M #number of bootstrap samples
 np.random.seed(1)
 nqso = inis.nqso
