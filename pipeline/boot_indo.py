@@ -6,12 +6,12 @@ import options as opt
 import matplotlib.pyplot as plt
 import pandas as pd
 
+np.seterr(divide='ignore', invalid='ignore') # I am ignoring this error because it is not important
+
 table_mf = np.loadtxt(inis.save_kzq_mf_path)
-#quasar index, z-index, sum of lya flux in z-bin, sum/num of lya pixels in z-bin,
-#sum of lyb (total) flux in z-bin, sum/num of lyb (total) pixels in z-bin
 qtable_pk = np.loadtxt(inis.save_kzq_pk_path)
-#quasar index, type of power measurement (numbered from 0-2 for paa,ptt, and pab),
-#redshift, wavenumber (k), sum of power in k,z bin, sum of pixels in k,z bin.
+#quasar index, z-index, sum of lya flux in z-bin, sum/num of lya pixels in z-bin, sum of lyb (total) flux in z-bin, sum/num of lyb (total) pixels in z-bin
+#quasar index, type of power measurement (numbered from 0-2 for paa,ptt, and pab), redshift, wavenumber (k), sum of power in k,z bin, sum of pixels in k,z bin.
 
 M = inis.M #number of bootstrap samples
 np.random.seed(1)
@@ -20,14 +20,12 @@ rand_matrix = [np.floor(np.random.rand(nqso)*nqso).astype(int) for i in range(M)
 boot_mf_arr = np.zeros((M,opt.zbinlen*2)) #empty matrix to be filled with mf values for each bootstrap sample
 boot_pk_arr = np.zeros((M,opt.zbinlen*3,opt.kbinlen))#empty matrix to be filled with pk values for each bootstrap sample
 
-
 for m in range(M):
     rand_qidxs = rand_matrix[m] #array of 100 random integers with replacement
     mf_arr = np.zeros((opt.zbinlen*2)) #empty matrix to be filled with lya and lya-lyb mf values in z bins
     mf_N_arr = np.zeros((opt.zbinlen*2)) #empty matrix to be filled with total number of pixels in each z bin
     for qidx in rand_qidxs: #looping through these 100 integers (quasar indices)
         qtable_mf = table_mf[table_mf[:,0] == qidx] #choosing portion of table matching the quasar index
-        #for znum,zidx in enumerate(range(2,opt.zbinlen+2)): #sept12
         for zidx in range(opt.zbinlen):
             ztable_mf = qtable_mf[qtable_mf[:,1] == opt.zbin_centers[zidx]] #choosing portion of table matching zbin
             mf_arr[zidx] += np.sum(ztable_mf[:,2]) #summing alpha mf into zbin
@@ -35,8 +33,6 @@ for m in range(M):
             mf_arr[opt.zbinlen+zidx] += np.sum(ztable_mf[:,4]) #summing alpha-beta mf into zbin
             mf_N_arr[opt.zbinlen+zidx] += np.sum(ztable_mf[:,5]) #summing alpha-beta pixels into zbin
     boot_mf_arr[m] = mf_arr/mf_N_arr # sum(mf)/num(mf) = <mf> in zbin for the mth boot sample
-    #print(mf_arr,mf_N_arr)
-
 
 for m in range(M):
     opt.updt(M,m)
@@ -47,14 +43,12 @@ for m in range(M):
         for qidx in rand_qidxs: #looping through these 100 integers (quasar indices)
             qmask = (qtable_pk[:,0] == qidx)&(qtable_pk[:,1] == pidx)
             qsub_table = qtable_pk[qmask].T #choosing portion of table matching the quasar index
-            #for znum,zidx in enumerate(range(2,opt.zbinlen+2)): #sept12
             for zidx in range(opt.zbinlen):
                 zmask = qsub_table[2] == opt.zbin_centers[zidx] #choosing portion of table matching zbin
                 zsub_table = qsub_table.T[zmask].T
                 for kidx in range(opt.kbinlen):
                     kmask = np.round(zsub_table[3],5) == np.round(opt.kbin_centers[kidx],5) #this is fine
                     pk_arr[pidx*opt.zbinlen+zidx][kidx] += np.sum(zsub_table[4][kmask])
-                    #(np.sum(zsub_table[4][kmask])/np.sum(zsub_table[5][kmask]))
                     N_arr[pidx*opt.zbinlen+zidx][kidx] += np.sum(zsub_table[5][kmask])
     boot_pk_arr[m] = pk_arr/N_arr
 
@@ -63,20 +57,14 @@ mf_boot = np.reshape(np.mean(boot_mf_arr,axis=0),(2,opt.zbinlen))
 
 lya_factor = (np.nansum(mf_summed.mf_a)*np.nansum(mf_summed.mf_a)) / (np.nansum(mf_boot[0])*np.nansum(mf_boot[0]))
 boot_pk_corr = lya_factor * boot_pk_arr
-# boot_pk_corr = boot_pk_arr
 
 #P_XY = [(<F_X> * <F_y>)_bootstrapped / (<F_X> * <F_Y>)_summed up]^2 * P_XY_bootstrapped
-
-
-
-#).to_csv(inis.save_boot_mf_path, index=False)
 ###########################################################################
 ################# NEW ERRORBARS AND SAVING THE BOOTSTRAPS #################
 ###########################################################################
 
 mfdata = pd.read_csv(inis.save_mf_path)
 pkdata = pd.read_csv(inis.save_pk_path)
-# if inis.mock_or_obs == "obs":
 if inis.save_boot_mf:
     np.savetxt(inis.save_boot_mf_path,boot_mf_arr.T)
     mf = np.loadtxt(inis.save_boot_mf_path)
@@ -110,16 +98,6 @@ if inis.save_boot_pk:
     err_pbb = np.ones(N_kz)*np.nan
     err_pbb[4*opt.kbinlen:7*opt.kbinlen] = err_pbb_sub
 
-    # ### INCLUDING RESOLUTION UNCERTAINTY
-    # sigma_res_aa = opt.find_res_uncertainty(pkdata.k,pkdata.z,pkdata.Paa)
-    # err_paa = np.sqrt(err_paa**2+sigma_res_aa**2)
-    # sigma_res_tt = opt.find_res_uncertainty(pkdata.k,pkdata.z,pkdata.Ptot)
-    # err_ptt = np.sqrt(err_ptt**2+sigma_res_tt**2)
-    # sigma_res_ab = opt.find_res_uncertainty(pkdata.k,pkdata.z,pkdata.Pab)
-    # err_pab = np.sqrt(err_pab**2+sigma_res_ab**2)
-    # sigma_res_bb = opt.find_res_uncertainty(pkdata.k,pkdata.z,pkdata.Pbb)
-    # err_pbb = np.sqrt(err_pbb**2+sigma_res_bb**2)
-
     if inis.save_pk_with_err:
         columns = ['k','z','paa','err_paa','N_aa','ptt', 'err_ptt','N_tt','pab','err_pab','N_ab','pbb','err_pbb']
         pk_everything = np.column_stack((pkdata.k,pkdata.z,
@@ -134,7 +112,15 @@ opt.updt(M, M)
 print("Saving bootstraps here:\n{0}\n{1}".format(inis.save_boot_mf_path,inis.save_boot_pk_path))
 print("Saving new datatables here:\n{0}\n{1}".format(inis.save_mf_with_err_path,inis.save_pk_with_err_path))
 
-#
+# ### INCLUDING RESOLUTION UNCERTAINTY
+# sigma_res_aa = opt.find_res_uncertainty(pkdata.k,pkdata.z,pkdata.Paa)
+# err_paa = np.sqrt(err_paa**2+sigma_res_aa**2)
+# sigma_res_tt = opt.find_res_uncertainty(pkdata.k,pkdata.z,pkdata.Ptot)
+# err_ptt = np.sqrt(err_ptt**2+sigma_res_tt**2)
+# sigma_res_ab = opt.find_res_uncertainty(pkdata.k,pkdata.z,pkdata.Pab)
+# err_pab = np.sqrt(err_pab**2+sigma_res_ab**2)
+# sigma_res_bb = opt.find_res_uncertainty(pkdata.k,pkdata.z,pkdata.Pbb)
+# err_pbb = np.sqrt(err_pbb**2+sigma_res_bb**2)
 
 # N = 91
 # boot_mat = np.reshape(boot_arr,(M,N))
