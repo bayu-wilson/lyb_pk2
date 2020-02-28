@@ -2,7 +2,7 @@
 
 import os
 ########################################################################################
-############################ Control Center entire pipeline ############################
+######################## Control Center for entire pipeline ############################
 ########################################################################################
 cat_name = "obs/XQ-100_catalogue"
 tag = "corrNR"
@@ -17,6 +17,8 @@ remove_dla = True
 wR2 = False # If True use original R2, if False, use wR column (11 km/s)
 log_kbinning = True
 redside_avg = False # if true then use avg flux on redside rather than continuum for normalized flux
+carswell_res = True #use the resolution from Carswell+18
+one_arm_res = True #only use one arm for resultion
 ########################################################################################
 #See line 86 in QuasarSpectrum.py for when `cat_name` gets used
 #Common `cat_name`: "obs/XQ-100_catalogue", "mocks/XQ-100_catalogue_n100","obs/XQ-100_catalogue", "mocks/XQ-100_catalogue_n100", "mocks/XQ-100_catalogue_n5000"

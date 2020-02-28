@@ -90,6 +90,15 @@ min_pix = 100
 min_flux = -1e-15
 min_trans = -100
 
+#SIGMA_RMS (resolution) in XQ-100 files
+R_UV = 20 #RMS RESOLUTION (sigma_R) = FWHM/(2*sqrt(2ln(2))).
+R_VIS = 11 #converting FWHM to sigma_R.
+
+#CARSWELL+18 values
+R_UV_carswell = 41.52075368/(2*np.sqrt(2*np.log(2)))
+R_VIS_carswell = 23.60134842/(2*np.sqrt(2*np.log(2)))
+overlap_minwav = 5499.85
+overlap_maxwav = 5599.14
 
 def updt(total, progress):
     """

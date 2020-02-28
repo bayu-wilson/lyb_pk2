@@ -173,19 +173,30 @@ class QuasarSpectrum(object):
                                         names = ("wav",'flx'))
                 mask_wave = (qso_table.wav.values>opt.lyb_min*(1+redshift))&(
                            qso_table.wav.values<opt.lya_rest/opt.lyb_rest*opt.lyb_max*(1+redshift))&(
-                           qso_table.flx.values>opt.min_trans)
+                           (qso_table.flx.values/cont_table.flx.values)>opt.min_trans)
+                # ### TESTING FEBRUARY 25 #feb25 #THERE ARE 2 BAD PIXELS AT Z= 3.25 AND 1.98
+                # bad_pix_mask = qso_table.flx.values/cont_table.flx.values<opt.min_trans
+                # asdf = np.sum(bad_pix_mask)
+                # if asdf != 0:
+                #     z_bad = qso_table.wav.values[bad_pix_mask]/opt.lya_rest-1
+                #     print(asdf,z_bad)
+                # ###
                 qso_table = qso_table[mask_wave]
                 cont_table = cont_table[mask_wave]
                 wavelength = qso_table.wav.values
                 unnormalized_flux = qso_table.flx.values
                 flux = unnormalized_flux/cont_table.flx.values
                 err_flux = qso_table.ferr.values/cont_table.flx.values
-                # resolution = qso_table.res.values #jan7 #THHIS IS RESOLUTION FROM FILE
-                # #June 25th
-                resolution = np.ones_like(wavelength)
-                m1 = wavelength<=5599.14 #Carswell
-                resolution[m1] = 41.52075368/(2*np.sqrt(2*np.log(2))) #RMS RESOLUTION (sigma_R) = FWHM/(2*sqrt(2ln(2)))
-                resolution[~m1] = 23.60134842/(2*np.sqrt(2*np.log(2))) #converting FWHM to sigma_R
+                resolution = qso_table.res.values #this will be overwritten if we use Carswell+18 resolution
+
+                if inis.carswell_res: #feb27
+                    #resolution = np.ones_like(wavelength)
+                    m1 = wavelength>=opt.overlap_maxwav #Carswell+18 #this is exactly where the overlap stops and it becomes the VIS arm
+                    resolution[m1] = opt.R_VIS_carswell #~10
+                    m2 = wavelength<=opt.overlap_minwav
+                    resolution[m2] = opt.R_UV_carswell #~17
+                    ### DOING NOTHING WITH THE OVERLAP REGION JUST SO YA KNOW ###
+
         if "wR2" in tag and not inis.wR2:
             # Using new column
             resolution = np.ones_like(qso_table.res.values)*11 * 0.2
@@ -242,14 +253,19 @@ class QuasarSpectrum(object):
         mask = ((self.wavelength>owave_min)&(self.wavelength<owave_max)&
                 (self.flux>opt.min_trans)&(zpix>=zedges[zidx])&(zpix<zedges[zidx+1]))
 
-        #Use only resolution of coming from one arm. Either UV or VIS.
-        # if zidx==3: #feb6 #feb11 commented again
-        #     only_res = 20 #41.52075368/(2*np.sqrt(2*np.log(2))) # 20 means UV arm. 11 means VIS arm.
-        #     #mask = self.resolution==only_res
-        #     mask = ((self.wavelength>owave_min)&(self.wavelength<owave_max)&
-        #         (self.flux>opt.min_trans)&(zpix>=zedges[zidx])&(zpix<zedges[zidx+1])&
-        #         (self.resolution==only_res))
-
+        #Use only resolution of coming from one arm. Either UV or VIS. The carswell resolutions are 17 or 10 while the original resolutions are 20 or 11...
+        #for UV and VIS respectively
+        if inis.one_arm_res:
+            if zidx==3: #feb6 #feb11 commented again
+                ### FOR REFERENCE
+                # Pixels lost by just using VIS arm in z=3.6: 56%
+                # Pixels lost by just using UV arm in z=3.6: 85%
+                ###
+                res_mask = self.wavelength >= opt.overlap_maxwav #only use the VIS region. If you want to do the UV you must manually change code.
+                mask = ((self.wavelength>owave_min)&(self.wavelength<owave_max)&
+                    (self.flux>opt.min_trans)&(zpix>=zedges[zidx])&(zpix<zedges[zidx+1])&
+                    (self.resolution==res_mask))
+                    
         ### Masking DLAs ###
         if inis.cat_name.startswith('obs'):
             if (name in self.dla_table.name.values)&(inis.remove_dla):

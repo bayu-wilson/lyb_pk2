@@ -106,7 +106,7 @@ for zidx in range(opt.zbinlen):
     zbin_msr_matrix[zidx] = msrmnt_in_zbin/count_in_zbin #since we are want the MEAN of these measurements per zbin, I SUMMED them up and then DIVIDED them by the counts
 opt.updt(opt.zbinlen, opt.zbinlen)
 f.close()
-print("Done\n")
+print("Done!\n")
 
 zbin_msr_matrix.T[3] = list(QuasarSpectrum.get_npow(mf=zbin_msr_matrix.T[0], nvar=zbin_msr_matrix.T[1], dloglambda=zbin_msr_matrix.T[2]))
 zbin_msr_matrix.T[7] = list(QuasarSpectrum.get_npow(mf=zbin_msr_matrix.T[4], nvar=zbin_msr_matrix.T[5],dloglambda=zbin_msr_matrix.T[6]))
@@ -304,6 +304,8 @@ if inis.save_dla: #Saving power spectra with a tag notating whether or not dla's
 print("OVI added?: ", inis.add_ovi)
 print("SiIII added?: ", inis.add_sithree)
 print("LYB added?: ", inis.add_beta)
+print("Carswell Resolution?: ", inis.carswell_res)
+print("Use one spectral arm in z=3.6?: ", inis.one_arm_res)
 if (inis.remove_dla)&inis.cat_name.startswith('obs'):
     print("DLA's removed?: ", inis.remove_dla)
 else:
