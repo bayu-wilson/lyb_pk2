@@ -305,7 +305,8 @@ print("OVI added?: ", inis.add_ovi)
 print("SiIII added?: ", inis.add_sithree)
 print("LYB added?: ", inis.add_beta)
 print("Carswell Resolution?: ", inis.carswell_res)
-print("Use one spectral arm in z=3.6?: ", inis.one_arm_res)
+print("Use VIS arm in z=3.6?: ", inis.onlyVIS)
+print("Don't use the overlap region at all?: ", inis.no_overlap)
 if (inis.remove_dla)&inis.cat_name.startswith('obs'):
     print("DLA's removed?: ", inis.remove_dla)
 else:

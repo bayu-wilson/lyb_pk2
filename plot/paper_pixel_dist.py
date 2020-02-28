@@ -5,7 +5,7 @@ import inis
 import matplotlib.pyplot as plt
 
 show_plot = False
-fontsize=25
+fontsize=20
 
 def total_path(z):
     #dz = 3e-5*np.log(10)
@@ -36,7 +36,8 @@ fig.set_size_inches(9,6)
 path_factor = total_path(opt.zbin_centers)
 ax.bar(opt.zbin_centers, path_factor*lya_pix_dist,width=0.15,color='red', label=r"Ly$\alpha$ forest")
 ax.bar(opt.zbin_centers, path_factor*lyb_pix_dist,width=0.12,color='blue', label=r"Ly$\beta$ forest")
-# ax.bar(opt.zbin_centers, lyx_pix_dist,width=0.1,color='green', label=r"Ly$\alpha$-Ly$\beta$ overlap")
+ax.bar(opt.zbin_centers, path_factor*lyx_pix_dist,width=0.1,color='green', label=r"Ly$\alpha$-Ly$\beta$ overlap")
+
 ax.set_xlabel("z", fontsize=fontsize)
 ax.set_ylabel("Mpc", fontsize=fontsize)
 ax.tick_params(axis='both', which='major', labelsize=20)

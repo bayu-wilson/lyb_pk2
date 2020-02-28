@@ -255,7 +255,7 @@ class QuasarSpectrum(object):
 
         #Use only resolution of coming from one arm. Either UV or VIS. The carswell resolutions are 17 or 10 while the original resolutions are 20 or 11...
         #for UV and VIS respectively
-        if inis.one_arm_res:
+        if inis.onlyVIS:
             if zidx==3: #feb6 #feb11 commented again
                 ### FOR REFERENCE
                 # Pixels lost by just using VIS arm in z=3.6: 56%
@@ -265,6 +265,12 @@ class QuasarSpectrum(object):
                 mask = ((self.wavelength>owave_min)&(self.wavelength<owave_max)&
                     (self.flux>opt.min_trans)&(zpix>=zedges[zidx])&(zpix<zedges[zidx+1])&
                     (self.wavelength >= opt.overlap_maxwav))
+        elif inis.no_overlap:
+            if zidx==3:
+                res_mask = (self.wavelength>opt.overlap_maxwav)|(self.wavelength<opt.overlap_minwav)
+                mask = ((self.wavelength>owave_min)&(self.wavelength<owave_max)&
+                    (self.flux>opt.min_trans)&(zpix>=zedges[zidx])&(zpix<zedges[zidx+1])&
+                    (res_mask))
 
         ### Masking DLAs ###
         if inis.cat_name.startswith('obs'):
