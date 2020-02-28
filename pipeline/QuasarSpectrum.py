@@ -192,9 +192,9 @@ class QuasarSpectrum(object):
                 if inis.carswell_res: #feb27
                     #resolution = np.ones_like(wavelength)
                     m1 = wavelength>=opt.overlap_maxwav #Carswell+18 #this is exactly where the overlap stops and it becomes the VIS arm
-                    resolution[m1] = opt.R_VIS_carswell #~10
+                    resolution[m1] *= opt.R_VIS_carswell #~10
                     m2 = wavelength<=opt.overlap_minwav
-                    resolution[m2] = opt.R_UV_carswell #~17
+                    resolution[m2] *= opt.R_UV_carswell #~17
                     ### DOING NOTHING WITH THE OVERLAP REGION JUST SO YA KNOW ###
 
         if "wR2" in tag and not inis.wR2:
@@ -261,11 +261,11 @@ class QuasarSpectrum(object):
                 # Pixels lost by just using VIS arm in z=3.6: 56%
                 # Pixels lost by just using UV arm in z=3.6: 85%
                 ###
-                res_mask = self.wavelength >= opt.overlap_maxwav #only use the VIS region. If you want to do the UV you must manually change code.
+                #res_mask = self.wavelength >= opt.overlap_maxwav #only use the VIS region. If you want to do the UV you must manually change code.
                 mask = ((self.wavelength>owave_min)&(self.wavelength<owave_max)&
                     (self.flux>opt.min_trans)&(zpix>=zedges[zidx])&(zpix<zedges[zidx+1])&
-                    (self.resolution==res_mask))
-                    
+                    (self.wavelength >= opt.overlap_maxwav))
+
         ### Masking DLAs ###
         if inis.cat_name.startswith('obs'):
             if (name in self.dla_table.name.values)&(inis.remove_dla):

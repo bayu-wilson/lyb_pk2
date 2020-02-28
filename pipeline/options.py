@@ -97,8 +97,8 @@ R_VIS = 11 #converting FWHM to sigma_R.
 #CARSWELL+18 values
 R_UV_carswell = 41.52075368/(2*np.sqrt(2*np.log(2)))
 R_VIS_carswell = 23.60134842/(2*np.sqrt(2*np.log(2)))
-overlap_minwav = 5499.85
 overlap_maxwav = 5599.14
+overlap_minwav = 5499.85
 
 def updt(total, progress):
     """

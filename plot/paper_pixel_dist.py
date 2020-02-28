@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 show_plot = False
 fontsize=25
 
-
 def total_path(z):
     #dz = 3e-5*np.log(10)
     dv = opt.c_kms*(3.e-5)*np.log(10)
