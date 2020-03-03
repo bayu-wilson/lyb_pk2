@@ -62,28 +62,32 @@ custom_lines = [Line2D([0], [0], color=colors[2], lw=9),
                 Line2D([0], [0], color='k',ls=linestyles[0])]
 #Plotting
 fig,ax = plt.subplots(1)
-fig.set_size_inches(10,8)#(8,5)
-ax.set_ylabel(r"$\overline{F}$",fontsize = 22)
-ax.set_xlabel("z",fontsize = 22)
+fig.set_size_inches(12,8)#(8,5)
+ax.set_ylabel(r"$\overline{F}$",fontsize = 30)
+ax.set_xlabel("z",fontsize = 30)
 # ax.grid()
 
 if plot_inis:
-    ax.errorbar(z_mf,mfa,yerr=err_mfa,color=colors[0],capsize=4,markersize=0,lw=1.5,capthick=2)
-    ax.errorbar(z_mf,mft,yerr=err_mft,color=colors[1],capsize=4,markersize=0,lw=1.5,capthick=2)
+    ax.errorbar(z_mf,mfa,yerr=err_mfa,color=colors[0],capsize=5,markersize=0,lw=2,capthick=2.5)
+    ax.errorbar(z_mf*1.001,mfa_uncorr,yerr=err_mfa,color=colors[0],capsize=5,markersize=0,
+                      lw=1.5,capthick=2.5,ls=linestyles[1])#[-1][0].set_linestyle('--')
+
+    ax.errorbar(z_mf,mft,yerr=err_mft,color=colors[1],capsize=5,markersize=0,lw=2,capthick=2.5)
+    ax.errorbar(z_mf*1.000,mft_uncorr,yerr=err_mft,color=colors[1],capsize=5,markersize=0,
+                      lw=1.5,capthick=2.5,ls=linestyles[1])
+
     # ax.errorbar(z_mf,mfb,yerr=err_mfb,color=colors[2],capsize=4,markersize=0,lw=1.5,capthick=2)
-    ax.errorbar(z_mf,mfb,yerr=err_mfb,color=colors[2],capsize=4,markersize=0,lw=1.5,capthick=2,ls=linestyles[0])
+    ax.errorbar(z_mf,mfb,yerr=err_mfb,color=colors[2],capsize=5,markersize=0,lw=2,capthick=2.5,ls=linestyles[0])
+    ax.errorbar(z_mf*0.999,mfb_uncorr,yerr=err_mfb,color=colors[2],capsize=5,markersize=0,
+                      lw=1.5,capthick=2.5,ls=linestyles[1])
     #labels.append(r"$\overline{F}_{\beta}$ Continuum Corrected")
     # custom_lines.append(Line2D([0], [0], color=colors[0], lw=9))
 
     # error_plot = ax.errorbar(z_mf*0.999,mfb_uncorr,yerr=err_mfb,color=colors[2],capsize=4,markersize=0,
     #                   lw=1.5,capthick=2,ls=linestyles[1])
     # error_plot[-1][0].set_linestyle('--') #error_plot[-1][0] is the LineCollection objects of the errorbar lines
-    (ax.errorbar(z_mf*1.001,mfa_uncorr,yerr=err_mfa,color=colors[0],capsize=4,markersize=0,
-                      lw=1.5,capthick=2,ls=linestyles[1]))#[-1][0].set_linestyle('--')
-    (ax.errorbar(z_mf*1.000,mft_uncorr,yerr=err_mft,color=colors[1],capsize=4,markersize=0,
-                      lw=1.5,capthick=2,ls=linestyles[1]))#[-1][0].set_linestyle('--')
-    (ax.errorbar(z_mf*0.999,mfb_uncorr,yerr=err_mfb,color=colors[2],capsize=4,markersize=0,
-                      lw=1.5,capthick=2,ls=linestyles[1]))#[-1][0].set_linestyle('--')
+    #[-1][0].set_linestyle('--')
+    #[-1][0].set_linestyle('--')
 
 
     # labels.append(r"$\overline{F}_{\beta}$")
@@ -116,22 +120,22 @@ if plot_BOSS:
     boss_err_mfa = boss_t.mfa*0.1
     boss_err_mfb = boss_t.mfb*0.1
     ax.errorbar(boss_t.z*1.001,boss_t.mfb,yerr=boss_err_mfb,color=colors[2],
-                fmt='^',capsize=3,alpha=1.0,markersize=4,lw=1,capthick=1)
+                fmt='^',capsize=3,alpha=1.0,markersize=7,lw=1,capthick=1)
                 #fmt='^',capsize=3,alpha=1.0,markersize=4,lw=1,capthick=1)
     ax.errorbar(boss_t.z*0.999,boss_t.mfa,yerr=boss_err_mfa,color=colors[0],
-                fmt='^',capsize=3,alpha=1.0,markersize=4,lw=1,capthick=1)
+                fmt='^',capsize=3,alpha=1.0,markersize=7,lw=1,capthick=1)
                 #fmt='^',capsize=3,alpha=1.0,markersize=4,lw=1,capthick=1)
 
 if plot_becker:
     beck_t = pd.read_csv("../data/obs/Becker13_DR7_mf.csv")
     ax.errorbar(beck_t.z,beck_t.mfa,yerr=beck_t.err_mfa,color=colors[0],
-                fmt='s',capsize=3,markersize=0,lw=1,capthick=1)
+                fmt='s',capsize=3,markersize=0,lw=1,capthick=1,alpha=0.8)
 
 
 ax.set_ylim(0.25,1.05)#0.31,0.85)
 
-ax.tick_params(axis='both', which='major', labelsize=17)
-ax.legend(custom_lines,labels,fontsize=15,loc='lower left',ncol=2,frameon=False)# bbox_to_anchor=(1, 0.5))
+ax.tick_params(axis='both', which='major', labelsize=20)
+ax.legend(custom_lines,labels,fontsize=20,loc='lower left',ncol=2,frameon=False)# bbox_to_anchor=(1, 0.5))
 
 if inis.save_paper_mf_v3:
     plt.savefig(inis.save_paper_mf_v3_path)

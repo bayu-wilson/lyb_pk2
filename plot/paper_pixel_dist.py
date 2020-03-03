@@ -21,6 +21,9 @@ qsos_table = np.loadtxt(inis.save_kzq_pk_path).T
 lya_pix_dist = np.zeros(opt.zbinlen)
 lyb_pix_dist = np.zeros(opt.zbinlen)
 lyx_pix_dist = np.zeros(opt.zbinlen)
+nqso_lya = np.zeros(opt.zbinlen)
+nqso_lyb = np.zeros(opt.zbinlen)
+nqso_lyx = np.zeros(opt.zbinlen)
 for zidx in range(opt.zbinlen):
     zmask_a = (qsos_table[2] == opt.zbin_centers[zidx])&(qsos_table[1] == 0)
     zmask_b = (qsos_table[2] == opt.zbin_centers[zidx])&(qsos_table[1] == 1)
@@ -30,6 +33,10 @@ for zidx in range(opt.zbinlen):
     lyb_pix_dist[zidx] = np.sum(qsos_table[5][zmask_b])
     lyx_pix_dist[zidx] = np.sum(qsos_table[5][zmask_x])
 
+    nqso_lya[zidx] = len(np.unique(qsos_table[0][zmask_a]))
+    nqso_lyb[zidx] = len(np.unique(qsos_table[0][zmask_b]))
+    nqso_lyx[zidx] = len(np.unique(qsos_table[0][zmask_x]))
+
 fig,ax = plt.subplots(1)
 fig.set_size_inches(9,6)
 
@@ -37,6 +44,15 @@ path_factor = total_path(opt.zbin_centers)
 ax.bar(opt.zbin_centers, path_factor*lya_pix_dist,width=0.15,color='red', label=r"Ly$\alpha$ forest")
 ax.bar(opt.zbin_centers, path_factor*lyb_pix_dist,width=0.12,color='blue', label=r"Ly$\beta$ forest")
 ax.bar(opt.zbin_centers, path_factor*lyx_pix_dist,width=0.1,color='green', label=r"Ly$\alpha$-Ly$\beta$ overlap")
+
+for i in range(opt.zbinlen):
+    ax.text(x=opt.zbin_centers[i],y=1500,s="{:d}".format(int(nqso_lya[i])),fontsize=12)
+    ax.text(x=opt.zbin_centers[i],y=1250,s="{:d}".format(int(nqso_lyb[i])),fontsize=12)
+    ax.text(x=opt.zbin_centers[i],y=1000,s="{:d}".format(int(nqso_lyx[i])),fontsize=12)
+
+ax.text(x=2.87,y=1500,s="N_lya=".format(int(nqso_lya[i])),fontsize=12)
+ax.text(x=2.87,y=1250,s="N_lyb=".format(int(nqso_lyb[i])),fontsize=12)
+ax.text(x=2.87,y=1000,s="N_lyx=".format(int(nqso_lyx[i])),fontsize=12)
 
 ax.set_xlabel("z", fontsize=fontsize)
 ax.set_ylabel("Mpc", fontsize=fontsize)
