@@ -192,9 +192,9 @@ class QuasarSpectrum(object):
                 if inis.carswell_res: #feb27
                     #resolution = np.ones_like(wavelength)
                     m1 = wavelength>=opt.overlap_maxwav #Carswell+18 #this is exactly where the overlap stops and it becomes the VIS arm
-                    resolution[m1] *= opt.R_VIS_carswell #~10
+                    resolution[m1] = opt.R_VIS_carswell #~10
                     m2 = wavelength<=opt.overlap_minwav
-                    resolution[m2] *= opt.R_UV_carswell #~17
+                    resolution[m2] = opt.R_UV_carswell #~17
                     ### DOING NOTHING WITH THE OVERLAP REGION JUST SO YA KNOW ###
 
         if "wR2" in tag and not inis.wR2:
@@ -281,14 +281,45 @@ class QuasarSpectrum(object):
                 for n in range(num_dlas):
                     row = sub_table.iloc[n]
                     z_dla,NHI = row.z, row.NHI
-                    wave_dla = (1+z_dla)*opt.lya_rest
-                    wave_dlb = (1+z_dla)*opt.lyb_rest
-                    lo_wave_dla = wave_dla-opt.find_EW(NHI,'alpha')*1.5/2
-                    hi_wave_dla = wave_dla+opt.find_EW(NHI,'alpha')*1.5/2
-                    lo_wave_dlb = wave_dlb-opt.find_EW(NHI,'beta')*1.5/2
-                    hi_wave_dlb = wave_dlb+opt.find_EW(NHI,'beta')*1.5/2
-                    mask_dla*=(self.wavelength<lo_wave_dla)|(self.wavelength>hi_wave_dla)
-                    mask_dla*=(self.wavelength<lo_wave_dlb)|(self.wavelength>hi_wave_dlb)
+                    deltaz_dla = opt.find_EW(NHI,"alpha",z_dla)*opt.DLA_cut_factor/2/opt.lya_rest
+                    deltaz_dlb = opt.find_EW(NHI,"beta",z_dla)*opt.DLA_cut_factor/2/opt.lya_rest
+
+                    dla_profile = opt.get_dla_profile((1.+z_dla)/(1.+zpix)-1,10**NHI)
+                    mask_dla *= (zpix<(z_dla-deltaz_dla))|(zpix>(z_dla+deltaz_dla))
+                    mask_dla *= (zpix<(opt.find_za(z_dla)-deltaz_dlb))|(zpix>(opt.find_za(z_dla)+deltaz_dlb))
+                    self.flux[mask*mask_dla] = self.flux[mask*mask_dla]/dla_profile[mask*mask_dla]
+                    # import sys
+                    # import matplotlib.pyplot as plt
+                    # plt.plot(zpix,self.flux)
+                    # plt.plot(zpix[mask],self.flux[mask])
+                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla]/dla_profile[mask*mask_dla])
+                    # plt.show()
+                    # sys.exit()
+                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla])
+                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla]/dla_profile[mask*mask_dla],color='red')
+
+
+                    # wave_dla = (1+z_dla)*opt.lya_rest
+                    # wave_dlb = (1+z_dla)*opt.lyb_rest
+                    # lo_wave_dla = wave_dla-opt.find_EW(NHI,'alpha',z_dla)*opt.DLA_cut_factor/2
+                    # hi_wave_dla = wave_dla+opt.find_EW(NHI,'alpha',z_dla)*opt.DLA_cut_factor/2
+                    # lo_wave_dlb = wave_dlb-opt.find_EW(NHI,'beta',z_dla)*opt.DLA_cut_factor/2
+                    # hi_wave_dlb = wave_dlb+opt.find_EW(NHI,'beta',z_dla)*opt.DLA_cut_factor/2
+
+                    ### Dividing out the DLA profile
+                    # mask_dla*=(self.wavelength<lo_wave_dla)|(self.wavelength>hi_wave_dla)
+                    # mask_dla*=(self.wavelength<lo_wave_dlb)|(self.wavelength>hi_wave_dlb)
+
+                    # dla_profile = opt.get_dla_profile((1.+z_dla)/(1.+zpix)-1,10**NHI)
+                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla])
+                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla]/dla_profile[mask*mask_dla],color='red')
+                    # #plt.axvline(z_dla)
+                    # plt.show()
+                    # #sys.exit()
+                    # if zidx==2:
+                    #     sys.exit()
+                    #print(str(np.mean(self.flux[mask*mask_dla]/dla_profile[mask*mask_dla]))+' '+str(np.mean(self.flux[mask*mask_dla])))
+
                 return mask*mask_dla #july 16
         return mask
 

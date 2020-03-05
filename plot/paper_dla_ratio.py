@@ -56,8 +56,9 @@ custom_lines = [Line2D([0], [0], color=colors[0], lw=9, marker=None),
 
 # pkdata = pd.read_csv("")
 # pkdata = pd.read_csv(inis.save_pk_with_err_path)
-pkdata_keepingDLA = pd.read_csv("../output/dla_comparison/pk_errboot_obs_corrNR_keepingDLAs.txt")
-pkdata_removingDLA = pd.read_csv("../output/dla_comparison/pk_errboot_obs_corrNR_removingDLAs.txt")
+pkdata_keepingDLA = pd.read_csv("../output/dla_comparison/pk_obs_corrNR_keepingDLAs.txt")
+# pkdata_removingDLA = pd.read_csv("../output/dla_comparison/pk_errboot_obs_corrNR_removingDLAs.txt")
+pkdata_removingDLA = pd.read_csv(inis.save_pk_path)
 
 
 

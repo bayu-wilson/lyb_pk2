@@ -63,7 +63,7 @@ pdf_bins = np.arange(-0.025,1.05,.05)
 mf_msrmnts = ['mf_a', 'nvar_a','dloglambda_a', 'npow_a',
            'mf_tot', 'nvar_tot','dloglambda_tot', 'npow_tot','z','mf_b',
            'var_atot','npow_atot']
-pk_msrmnts = ['k','Paa','Ptot','Pab','Qab','Pbb','npix_aa','npix_tt','npix_ab','z'] #sept25
+pk_msrmnts = ['k','paa','ptt','pab','qab','pbb','npix_aa','npix_tt','npix_ab','z'] #sept25
 
 #Wavenumbers
 if inis.log_kbinning:
@@ -84,6 +84,7 @@ else:
 
 #DLAs
 DLAcat_file = "Data/XQ-100_DLA_catalogue.txt"
+DLA_cut_factor = 0.75 #measured in equivalent widths
 
 #Bad Pixels
 min_pix = 100
@@ -99,6 +100,8 @@ R_UV_carswell = 41.52075368/(2*np.sqrt(2*np.log(2)))
 R_VIS_carswell = 23.60134842/(2*np.sqrt(2*np.log(2)))
 overlap_maxwav = 5599.14
 overlap_minwav = 5499.85
+
+
 
 def updt(total, progress):
     """
@@ -163,9 +166,9 @@ def comoving_distance(v):
     z = v/c_kms
     return v/(H_0*np.sqrt(omega_m0*(1+z)))
 
-def find_EW(NHI,line):
+def find_EW(NHI,line,z_dla):
     # Galaxy Formation & Evolution, Frank van den Boschm Pg. 712, Eq. 16.113
-    W_alpha = 7.3 * (10**NHI/10**20)**(0.5)#angstroms
+    W_alpha = 7.3 * (10**NHI/10**20)**(0.5)*(1+z_dla)#angstroms
     W_beta = xs_beta/xs_alpha * W_alpha
     if line == 'alpha':
         return  W_alpha
@@ -233,3 +236,10 @@ def find_res_uncertainty(k,z,pk):
             sigmaR = 10.02256986
         res_uncertainty_array[i]=(2*(k[i]*sigmaR)**2*rel_err_sigmaR*pk[i])
     return res_uncertainty_array
+
+a=2.88314e-26#cm^2
+b=2.02161e-8
+# c=3e+10 #cm/s
+def get_dla_profile(v_over_c,N_HI):
+  tau = a*N_HI/((v_over_c)**2+b**2)
+  return np.exp(-tau)

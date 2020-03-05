@@ -25,9 +25,9 @@ print("Loading Data")
 qso_arr = []
 for i in range(nqso): #looping through each quasar filepath to load it into an array of nqso objects
     q = QuasarSpectrum.load_qso_data(i,tag=tag,rescale_flux=rescale_flux)
-    ######################################
-    # Adding more lines to mocks spectra #
-    ######################################
+    #####################################
+    # Adding more lines to mock spectra #
+    #####################################
     #Lyb
     if ("noB" in tag)&(inis.add_beta): # adding Lyb to mocks
         q.get_new_forest(rescale_flux=rescale_flux,wrange = (opt.lyb_min,opt.lyb_max,opt.lyb_rest, opt.xs_beta))
