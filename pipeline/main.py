@@ -34,7 +34,7 @@ for i in range(nqso): #looping through each quasar filepath to load it into an a
     #OVI
     if inis.cat_name.startswith('mocks')&(inis.add_ovi):
         q.get_new_forest(rescale_flux=rescale_flux,wrange = (opt.ovi_min,opt.ovi_max,opt.ovi_rest_d1, opt.xs_ovi)) #ovi_rest_d1 = 1032
-        q.get_new_forest(rescale_flux=rescale_flux,wrange = (opt.ovi_min,opt.ovi_max,opt.ovi_rest_d2*opt.ovi_factor, opt.xs_ovi)) #ovi_rest_d2 = 1038
+        q.get_new_forest(rescale_flux=rescale_flux,wrange = (opt.ovi_min,opt.ovi_max,opt.ovi_rest_d2, opt.xs_ovi*opt.ovi_factor)) #ovi_rest_d2 = 1038
     #SiIII
     if inis.cat_name.startswith('mocks')&(inis.add_sithree):
         q.get_new_forest(rescale_flux=rescale_flux,wrange = (opt.sithree_min,opt.sithree_max,opt.sithree_rest_d1, opt.xs_sithree))
@@ -79,7 +79,7 @@ for zidx in range(opt.zbinlen):
             else:
                 ferrtot = griddata(ztot[new_bf_mask],ferrtot,za[new_af_mask],method='linear')
                 ferrtot = ferrtot[np.isfinite(ferrtot)]
-            msrmnt_in_zbin[10]+= np.sum(ferra*ferrtot)*0 #CHANGED 5/3/19 after meeting with Matt. Flux covariance between alpha and total should be zero (I think)
+            msrmnt_in_zbin[10]+= np.sum(ferra*ferrtot)*0 #CHANGED 5/3/19 after meeting with Matt. Flux covariance between alpha and total should be zero -- That's correct
             count_in_zbin[10] += len(ferra)                         # len lya_tot 10
         except:
             #sometimes the two forests don't overlap
@@ -138,7 +138,7 @@ mf_output_df['mf_b'] = mf_lyb
 # CONTINUUM CORRECTION. F_true = F_est * (1-deltaC/C_true)
 if inis.continuum_correction:
     C_a_ratio = opt.continuum_correction(opt.zbin_centers)
-    C_t_ratio = opt.continuum_correction(opt.zbin_centers-0.2)
+    C_t_ratio = opt.continuum_correction(opt.zbin_centers-0.2)  #Matt M:  the 0.2 is from eyeballing where the mean flux is about the same in total relative to alpha
     C_b_ratio = np.abs(np.abs(C_a_ratio)-np.abs(C_t_ratio))
     mf_output_df['mf_a'] = mf_output_df['mf_a']*(1-C_a_ratio)
     mf_output_df['mf_tot'] = mf_output_df['mf_tot']*(1-C_t_ratio)
@@ -156,7 +156,7 @@ if inis.save_flux_pdf:
 
 pk_msrmnts = opt.pk_msrmnts
 n_pk_msrmnts = len(pk_msrmnts)
-
+chunklengthlist_a = [np.array([0])]*opt.zbinlen; chunklengthlist_t = [np.array([0])]*opt.zbinlen; chunklengthlist_c = [np.array([0])]*opt.zbinlen   #to output list of pixel lengths in each redshift bin
 znk_matrix = np.zeros((opt.zbinlen,n_pk_msrmnts,opt.kbinlen)) #  7 zbins, 10 measurements, 20 kbins
 print("Power Spectra Calculation")
 f = open(inis.save_kzq_pk_path,'w') #july1
@@ -178,6 +178,8 @@ for zidx in range(opt.zbinlen): #aug20
         #################### LYA FOREST: P ALPHA ALPHA ####################
         ###################################################################
         name = qso_arr[qidx].name
+        #[kmaxa, kmaxb, kmaxab] = qso_arr[qidx].kmax_arr  #Matt M:added this
+            
         zpix_a = qso_arr[qidx].get_zpix(opt.lya_rest)
         zmask_a = qso_arr[qidx].get_zmask(forest=(opt.lya_min,opt.lya_max,opt.lya_rest),
                                         zpix=zpix_a,zidx=zidx,zedges=opt.zbin_edges,name=name)
@@ -187,16 +189,31 @@ for zidx in range(opt.zbinlen): #aug20
         nchunks_a = opt.how_many_chunks(zmask_a) #usually 1
         nchunks_tot = opt.how_many_chunks(zmask_tot)
 
+        Lya_str = 'VIS' if opt.overlap_maxwav < opt.lya_rest*(1+opt.zbin_centers[zidx]) else 'UV'
+        Lyb_str = 'VIS' if opt.overlap_maxwav < opt.lyb_rest*(1+opt.zbin_centers[zidx]) else 'UV'        
+        kmax = [qso_arr[qidx].kmax[Lya_str], qso_arr[qidx].kmax[Lyb_str], 2**.5*(1./qso_arr[qidx].kmax[Lya_str]**2 +1./qso_arr[qidx].kmax[Lyb_str]**2)**-0.5] #temporary
+        #print("kmax = ", qso_arr[qidx].kmax,  kmax[2])
+        #exit()
+        
         for chunk_idx_a in range(nchunks_a):
             #looping through each chunk. Probably 1. maybe 2. not more than 3.
             zmask_a_sub = opt.get_chunks(zmask_a)[chunk_idx_a]
-            if np.sum(zmask_a_sub)>opt.min_pix:
+            chunk_length = len(zmask_a_sub) #opt.get_chunk_length(zmask_a)
+            
+            #if chunk_length >1200:
+            #    print("very long segment: ", np.min(zmask_a), np.max(zmask_a))
+            #print("chunck = ", len(zmask_a_sub), chunk_length)
+            
+            if chunk_length >opt.min_pix:
+                chunklengthlist_a[zidx] = np.append(chunklengthlist_a[zidx],  chunk_length) #make a list of number of pixels used
                 #auto-power if passes minimum pized constraint
-                kpix,pk = qso_arr[qidx].get_autopower(mf_output_df.mf_a[zidx],zmask_a_sub)
+                kpix,pk = qso_arr[qidx].get_autopower(mf_output_df.mf_a[zidx],zmask_a_sub) 
                 for kidx in range(opt.kbinlen):
                     npow = mf_output_df.npow_a.values[zidx]
-                    kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges)
-                    pk_sub = qso_arr[qidx].get_pk_subsets(kpix=kpix,pk=pk,zmask=zmask_a_sub,kmask=kmask,corr_tag=tag,npow=npow) #pk in the kidx'th kbin
+                    kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges, kmax=kmax[0])
+                    if inis.individual_qso_kmax == 1 and qso_arr[qidx].get_kmax() < opt.kbin_centers[kidx]:  #Matt M: added this and next line to not add highest k
+                            break
+                    pk_sub = qso_arr[qidx].get_pk_subsets(kpix=kpix,pk=pk,zmask=zmask_a_sub,kmask=kmask,corr_tag=tag,npow=npow) #pk in the kidx'th kbin                                                                      #Matt M: This is where resolution correction occurs. 
                     msrmnt_in_kbin[1,kidx] += np.sum(pk_sub) #adding paa in k,z bin for the qidx'th quasar
                     count_in_kbin[1,kidx] += len(pk_sub) #adding number of paa pixels
                     msrmnt_in_kbin[6,kidx] += len(pk_sub) ##adding number of npix_aa pixels
@@ -204,18 +221,24 @@ for zidx in range(opt.zbinlen): #aug20
                     s = "{4:g} 0 {0:g} {1:g} {2:g} {3:g}".format(opt.zbin_centers[zidx],opt.kbin_centers[kidx], np.sum(pk_sub),len(pk_sub),qidx) #july1 #writing to external file
                     #0 means paa
                     f.write(s+'\n') #july1
-
+      
         ###################################################################
         #################### LYB FOREST: P TOTAL TOTAL ####################
         ###################################################################
         for chunk_idx_tot in range(nchunks_tot):
             zmask_tot_sub = opt.get_chunks(zmask_tot)[chunk_idx_tot]
-            if (np.sum(zmask_tot_sub)>opt.min_pix):
+            chunk_length = len(zmask_tot_sub) #opt.get_chunk_length(zmask_tot)
+            print("chunck ttot", chunk_length)
+            if (chunk_length >opt.min_pix):
+                chunklengthlist_t[zidx] = np.append(chunklengthlist_t[zidx],  chunk_length)
                 kpix,pk = qso_arr[qidx].get_autopower(mf_output_df.mf_tot[zidx],zmask_tot_sub)
                 for kidx in range(opt.kbinlen):
                     npow = mf_output_df.npow_tot.values[zidx]
-                    kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges)
+                    kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges, kmax=kmax[1])
+                    if inis.individual_qso_kmax == 1 and kmaxb < opt.kbin_centers[kidx]:  #Matt M: added this and next line to not add highest k
+                            break
                     pk_sub = qso_arr[qidx].get_pk_subsets(kpix=kpix,pk=pk,zmask=zmask_tot_sub,kmask=kmask,corr_tag=tag,npow=npow)
+                                       #Matt M: This is where resolution correction occurs. 
                     msrmnt_in_kbin[2,kidx] += np.sum(pk_sub) #adding ptot in k,z bin for the qidx'th quasar
                     count_in_kbin[2,kidx] += len(pk_sub) #adding number of ptot pixels
                     msrmnt_in_kbin[7,kidx] += len(pk_sub) #adding number of npix_tt pixels
@@ -235,20 +258,26 @@ for zidx in range(opt.zbinlen): #aug20
             if (nchunks_a>0)&(nchunks_tot>0):
                 #only proceed if both forests have non-zero chunks!
                 za = zpix_a[opt.get_chunks(zmask_a)[idx_a]]
+                #chunk_length_a = opt.get_chunk_length(zmask_a)
                 ztot = zpix_tot[opt.get_chunks(zmask_tot)[idx_tot]]
+                #chunk_length_tot = opt.get_chunk_length(zmask_tot)
                 za_min = np.min(za)
                 za_max = np.max(za)
                 ztot_min = np.min(ztot)
                 ztot_max = np.max(ztot)
                 mask_chk_a = (zpix_a>np.max([ztot_min,za_min]))&(zpix_a<np.min([ztot_max,za_max])) #mask for alpha chunk
                 mask_chk_tot = (zpix_tot>np.max([ztot_min,za_min]))&(zpix_tot<np.min([ztot_max,za_max])) #mask for beta chunk
-                if (np.sum(mask_chk_a)>opt.min_pix)&(np.sum(mask_chk_tot)>opt.min_pix):
+                #print("chunks", chunk_length_a, chunk_length_tot, np.sum(mask_chk_a), np.sum(mask_chk_tot), mf_output_df.mf_tot[zidx])
+                if (np.sum(mask_chk_a) >opt.min_pix)&(np.sum(mask_chk_tot)>opt.min_pix):
+                    chunklengthlist_c[zidx] = np.append(chunklengthlist_c[zidx],  np.min([np.sum(mask_chk_a), np.sum(mask_chk_tot)]))
                     kpix,pab,qab,dlam,resa,resb = qso_arr[qidx].cross_pk_fft(mask_lya=mask_chk_a,mask_lyb=mask_chk_tot,
                                           mf_lya=mf_output_df.mf_a[zidx],
                                           mf_lyb=mf_output_df.mf_tot[zidx])
                     npow = mf_output_df.npow_atot.values[zidx]
                     for kidx in range(opt.kbinlen): #aug20
-                        kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges)
+                        kmask = qso_arr[qidx].get_kmask(kpix=kpix,kidx=kidx,kedges=opt.kbin_edges, kmax=kmax[2])
+                        if inis.individual_qso_kmax == 1 and kmaxab < opt.kbin_centers[kidx]:  #Matt M: added this and next line to not add highest k
+                            break
                         pab_sub,qab_sub = qso_arr[qidx].get_xpk_subsets(kpix,pab,qab,dlam,resa,resb,tag,npow,kmask)
 
                         s = "{4:g} 2 {0:g} {1:g} {2:g} {3:g}".format(opt.zbin_centers[zidx],opt.kbin_centers[kidx],
@@ -274,6 +303,15 @@ f.close() #july1
 opt.updt(opt.zbinlen, opt.zbinlen)
 print("Done!\n")
 
+#with open('Lyaskewerlengths.txt') as f:
+#    for i in range(opt.zbinlen):
+#        #f.write
+#        f.write(str(chunklengthlist[i]))
+#Matt M: for my own use to know lengths of skewers: should delete
+np.savez("Lyaskewerlengths", chunklengthlist_a[0], chunklengthlist_a[1], chunklengthlist_a[2], chunklengthlist_a[3], chunklengthlist_a[4], chunklengthlist_a[5],chunklengthlist_a[6], kwds=['3.0','3.2', '3.4', '3.6', '3.8', '4.0', '4.2']) # for i in range(opt.zbinlen)], header=str())
+np.savez("LyTskewerlengths", chunklengthlist_t[0], chunklengthlist_t[1], chunklengthlist_t[2], chunklengthlist_t[3], chunklengthlist_t[4], chunklengthlist_t[5],chunklengthlist_t[6], kwds=['3.0','3.2', '3.4', '3.6', '3.8', '4.0', '4.2'])
+np.savez("LyCskewerlengths", chunklengthlist_c[0], chunklengthlist_c[1], chunklengthlist_c[2], chunklengthlist_c[3], chunklengthlist_c[4], chunklengthlist_c[5],chunklengthlist_c[6], kwds=['3.0','3.2', '3.4', '3.6', '3.8', '4.0', '4.2'])
+
 #Finding Lyman beta power
 for i in range(len_zab):
     if bin_zab[i] in opt.zbin_centers:
@@ -288,18 +326,17 @@ for i in range(1,opt.zbinlen):
 
 ########## SUBTRACTING REDSIDE METAL POWER ##########
 if inis.subtract_metal_power:
-    metal_power = np.concatenate([np.loadtxt('../data/obs/pk_xs_avg.txt')]*opt.zbinlen) #subtracting metals again sept25
+    metal_power = np.concatenate([np.loadtxt('../data/obs/pk_xs_avg.txt')]*opt.zbinlen) #subtracting metals again sep25
     x.Paa = x.Paa.values-metal_power
     x.Ptot = x.Ptot.values-metal_power
     #x.Pbb = x.Pbb.values-metal_power #redside metals won't affect beta power. contribution cancels out
 
-if inis.save_mf: #Saving mean flux
-    mf_output_df.to_csv(inis.save_mf_path,index=False)
+###########################################################
+#Saving figures
+##########################################################
+mf_output_df.to_csv(inis.save_mf_path,index=False)
+x.to_csv(inis.save_pk_path,index=False)
 
-if inis.save_pk: #Saving power specta
-    x.to_csv(inis.save_pk_path,index=False)
-if inis.save_dla: #Saving power spectra with a tag notating whether or not dla's were removed
-    x.to_csv(inis.save_dla_path,index=False)
 
 print("OVI added?: ", inis.add_ovi)
 print("SiIII added?: ", inis.add_sithree)

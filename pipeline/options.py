@@ -18,7 +18,7 @@ lya_max = 1185 # 1201.78 # 1185 #aug2
 lya_rest =  1215.67
 f_osc_lya = 0.4162
 xs_alpha = f_osc_lya * lya_rest
-v_alpha = 2271 #km/s
+v_alpha = 2271 #km/s Matt M: appears in a function that is never used
 
 #LYMAN BETA
 lyb_min = 978 # 881.717 # 978 #aug2
@@ -26,15 +26,17 @@ lyb_max = 1014 # 1014 # 999.8 # 1014 #aug2
 lyb_rest = 1025.72
 f_osc_lyb = 0.0791
 xs_beta = f_osc_lyb * lyb_rest
-v_beta = -1801 #km/s
+v_beta = -1801 #km/s Matt M: appears in a function that is never used
 
 
 #O VI
 ovi_min = 978
+
+
 ovi_max = 1014
-ovi_rest_d1 = 1031.91 # 1032
+ovi_rest_d1 = 1031.91 # 1032  #Matt M changed to add sig fig
 fosc_ovi_d1 = 0.13290
-ovi_rest_d2 = 1037.61
+ovi_rest_d2 = 1037.61 #Matt M changed to add sig fig
 fosc_ovi_d2 = 0.06609
 xs_ovi = 10**(-2.5) * xs_alpha
 ovi_factor = fosc_ovi_d2/fosc_ovi_d1
@@ -84,7 +86,7 @@ else:
 
 #DLAs
 DLAcat_file = "Data/XQ-100_DLA_catalogue.txt"
-DLA_cut_factor = 0.75 #measured in equivalent widths
+DLA_cut_factor = 1. #measured in equivalent widths (goes out half this distance in each direction from center
 
 #Bad Pixels
 min_pix = 100
@@ -92,8 +94,8 @@ min_flux = -1e-15
 min_trans = -100
 
 #SIGMA_RMS (resolution) in XQ-100 files
-R_UV = 20 #RMS RESOLUTION (sigma_R) = FWHM/(2*sqrt(2ln(2))).
-R_VIS = 11 #converting FWHM to sigma_R.
+#R_UV = 20 #RMS RESOLUTION (sigma_R) = FWHM/(2*sqrt(2ln(2))).
+#R_VIS = 11 #converting FWHM to sigma_R.
 
 #CARSWELL+18 values
 R_UV_carswell = 41.52075368/(2*np.sqrt(2*np.log(2)))
@@ -101,7 +103,7 @@ R_VIS_carswell = 23.60134842/(2*np.sqrt(2*np.log(2)))
 overlap_maxwav = 5599.14
 overlap_minwav = 5499.85
 
-
+ADC_off_qsos  = ['J1013+0650', 'J1416+1811', 'J1524+2123', 'J1542+0955', 'J1552+1005', 'J1621-0042', 'J1723+2243'] #these are the qsos for which the wavelength calibration is likely to be worst
 
 def updt(total, progress):
     """
@@ -201,6 +203,24 @@ def how_many_chunks(mask):
         return increases+1
     #return np.max([increases,decreases])
 
+def get_chunk_length(mask):
+    chunk_edges = []
+    for i in range(len(mask)-1):
+        if mask[i+1]>mask[i]:
+            chunk_edges.append(i+1)
+        if mask[i]>mask[i+1]:
+            chunk_edges.append(i+1)
+    chunk_edges.sort()
+    
+    if len(chunk_edges) == 2:
+        if chunk_edges[1] - chunk_edges[0] >1200:
+            print("ce1", chunk_edges[1], chunk_edges[0])
+        return chunk_edges[1] - chunk_edges[0]
+    else:
+        if chunk_edges[0] >1200:
+            print("ce2", chunk_edges)
+        return chunk_edges[0]
+        
 def get_chunks(mask):
     #Used in line ~190 of main.py
     chunk_edges = []
@@ -210,12 +230,15 @@ def get_chunks(mask):
         if mask[i]>mask[i+1]:
             chunk_edges.append(i+1)
     chunk_edges.sort()
+
     splitted = np.split(mask, chunk_edges)
     splitted_idx = np.split(np.arange(len(mask)), chunk_edges)
     subset_chunk_edges = []
     for s in range(len(splitted)):
         if np.all(splitted[s]==True):
             subset_chunk_edges.append(splitted_idx[s])
+    #if len( chunk_edges)>2:
+    #    print("subset chunk edges", subset_chunk_edges)
     return subset_chunk_edges
 
 def continuum_correction(z):
@@ -242,4 +265,10 @@ b=2.02161e-8
 # c=3e+10 #cm/s
 def get_dla_profile(v_over_c,N_HI):
   tau = a*N_HI/((v_over_c)**2+b**2)
+  return np.exp(-tau)
+
+ab=6.2164025654e-27#cm^2
+bb=5.16495523076e-9
+def get_dlb_profile(v_over_c,N_HI):
+  tau = ab*N_HI/((v_over_c)**2+bb**2)
   return np.exp(-tau)

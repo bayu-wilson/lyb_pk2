@@ -41,8 +41,8 @@ custom_lines = [Line2D([0], [0], color=colors[0], lw=9, marker=None),
                 # Line2D([0], [0], color=colors[3], lw=9, marker=None)]
 
 
-pkdata = pd.read_csv("../output/dla_comparison/pk_errboot_obs_corrNR_keepingDLAs.txt")#inis.save_pk_with_err_path)
-pkdata2 = pd.read_csv("../output/dla_comparison/pk_errboot_obs_corrNR_removingDLAs.txt")#inis.save_pk_with_err_path)
+pkdata = pd.read_csv("../output/pk_errboot_obs_lyb_nocorr_DLAFalse_metalFalse_boot0.csv") #../output/dla_comparison/pk_errboot_obs_corrNR_keepingDLAs.txt")#inis.save_pk_with_err_path)
+pkdata2 = pd.read_csv("../output/pk_errboot_obs_lyb_nocorr_DLATrue_metalFalse_boot0.csv")   #"../output/dla_comparison/pk_errboot_obs_corrNR_removingDLAs.txt")#inis.save_pk_with_err_path)
 
 
 # plt.style.use('classic')
@@ -108,8 +108,8 @@ for i in range(2):
                 ax[i,j].errorbar(k_x*0.99,np.log10(k*ptt/np.pi),yerr=log_err_ptt,color=colors[1], fmt='.',alpha = 0.5)
                 ax[i,j].errorbar(k_x,np.log10(k*pab/np.pi),yerr=log_err_pab,color=colors[2], fmt='.',alpha = 0.5)
 
-                ax[i,j].errorbar(k_x*0.99,np.log10(k*paa2/np.pi),yerr=log_err_paa2,color="gray", fmt='.',alpha = 0.5)
-                ax[i,j].errorbar(k_x*1.01,np.log10(k*ptt2/np.pi),yerr=log_err_ptt2,color="gray", fmt='.',alpha = 0.5)
+                ax[i,j].errorbar(k_x*0.99,np.log10(k*paa2/np.pi),yerr=log_err_paa2,color="gray", fmt='-',alpha = 0.5)
+                ax[i,j].errorbar(k_x*1.01,np.log10(k*ptt2/np.pi),yerr=log_err_ptt2,color="gray", fmt='--',alpha = 0.5)
                 ax[i,j].errorbar(k_x*0.99,np.log10(k*pab2/np.pi),yerr=log_err_pab2,color="gray", fmt='.',alpha = 0.5)
                 #ax[i,j].errorbar(k_x,k*pbb/np.pi,yerr=err_pbb*k/np.pi,color=colors[3], fmt='.')
                 ax[i,j].text(0.50, 0.10,"z={0}".format(opt.zbin_centers[zidx]) #0.80, 0.95
@@ -126,15 +126,15 @@ for i in range(2):
 
                 ax2 = ax[i,j].twinx()
                 #ax2.set_yscale('log')
-                ax2.plot(k_x,N_aa-N_aa2,color=colors[0])
-                ax2.plot(k_x,N_tt-N_tt2,color=colors[1])
-                ax2.plot(k_x,N_ab-N_ab2,color=colors[2])
+                ax2.plot(k_x,(N_aa-N_aa2)/N_aa,color=colors[0])
+                ax2.plot(k_x,(N_tt-N_tt2)/N_tt,color=colors[1])
+                ax2.plot(k_x,(N_ab-N_ab2)/N_ab,color=colors[2])
 
                 #ax2.plot(k_x,N_aa2,color="gray")
                 #ax2.plot(k_x,N_tt2,color="gray")
                 #ax2.plot(k_x,N_ab2,color="gray")
                 #ax2.set_ylim(1e1,2200)
-                ax2.set_ylim(-4,16)
+                ax2.set_ylim(-.02,.2)
 
 
                 #ax[i,j].set_yticks(ax[i,j].get_yticks()[::1])
@@ -170,6 +170,7 @@ ax[0,2].xaxis.set_tick_params(labelbottom=True)
 
 plt.tight_layout()
 if inis.save_paper_pk_v5:
+    print("printing to ", inis.save_paper_pk_v5_path)
     plt.savefig(inis.save_paper_pk_v5_path)
 if show_plot:
     plt.show()

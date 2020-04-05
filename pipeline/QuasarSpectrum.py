@@ -11,10 +11,11 @@ class QuasarSpectrum(object):
     all_names = None
     all_redshifts = None
     dla_table = None
+    seeing_table = None
     nqso = None
     """Container for quasar spectra"""
     def __init__(self,wavelength=None, flux=None, err_flux=None,
-                 resolution=None, dloglambda=None, name=None, redshift=None,
+                 resolution=None, mask_dla=None, dloglambda=None, kmax=None, name=None, redshift=None,
                  unnormalized_flux=None):
         """
         Parameters
@@ -44,6 +45,8 @@ class QuasarSpectrum(object):
         self.dloglambda = dloglambda
         self.redshift = redshift
         self.unnormalized_flux = unnormalized_flux
+        self.mask_dla = mask_dla  #will be set if inis.remove_dla == True
+        self.kmax = kmax #set in resolution if there is a maximum wavenumber 
     def plot_spectrum(self,norm=True):
         """
         Plots normalized or unnormalized qso spectrum.
@@ -62,7 +65,7 @@ class QuasarSpectrum(object):
 
         if (not norm) & (not self.name.startswith("mock")): # if normalized and observed data
             ax.plot(self.wavelength, self.unnormalized_flux/1e-15)
-            ax.set_ylabel(r"Flux [$10^{-15}$ erg cm$^{-2}$ s$^{-1}$ Å$^{-1}$]",fontsize=fontsize)
+            ax.set_ylabel(r"Flux [$10^{-15}$ erg cm$^{-2}$ s$^{-1}$ \AA$^{-1}$]",fontsize=fontsize)
         else:
             ax.plot(self.wavelength, self.flux)
             ax.set_ylabel(r"Flux [erg cm$^{-2}$ s$^{-1}$ Å$^{-1}$]",fontsize=fontsize)
@@ -81,14 +84,20 @@ class QuasarSpectrum(object):
         if tag.startswith('obs'): #What matters is what the tag starts/ends with. This is loading a catalog for OBS
             path_to_cat = "../data/obs/XQ-100_catalogue.txt"
             catalog_table = pd.read_csv(path_to_cat,delim_whitespace=True,usecols=(3,6),
-                                names = ("qso_name","redshifts"))
+                                names = ("qso_name","redshifts"), comment='#')
             path_to_dlas = "../data/obs/XQ-100_DLA_catalogue.txt"
             dla_colnames = ['idx','name','z','NHI','err_NHI']
             ####
             dla_table = pd.read_csv(path_to_dlas,delim_whitespace=True,names=dla_colnames)
+            path_to_seeing = "../data/obs/XQ-100_catalogue_seeing.txt"
+            seeing_table  = pd.read_csv(path_to_seeing,delim_whitespace=True,names=['qsonum', 'catelog', 'longname', 'name', 'RA', 'DEC', 'z_qso', 'aperture', 'seeing_min', 'seeing_max'])
+            #print("seeing min= ", seeing_table['seeing_min'][seeing_table['name']=='J1024+1819'].values)  #Matt M: testing that this works
+            #exit();
+            
             qname_array,z_array = catalog_table['qso_name'].values,catalog_table['redshifts'].values
             nqso = 100
             cls.dla_table = dla_table
+            cls.seeing_table = seeing_table
         elif tag.startswith('mocks'): #This is loading a catalog for MOCKS
             cat_mask = int(tag.split("_n")[1]) == np.array([100,600,700,5000])
             #which_catalog = int(tag.endswith("n5000")) # index for `path_to_cat`
@@ -117,6 +126,8 @@ class QuasarSpectrum(object):
         """
         name = cls.all_names[cat_index]
         redshift = cls.all_redshifts[cat_index]
+
+        kmax_dict = {'UV': 100., 'VIS': 100.} #initialize to large number
         if name.startswith("mock"):
             ### MOCKS ###
             all_paths = glob.glob("../data/mocks/XQ-100_{0}/ly*/ref/spectra/mock-*.txt.gz".format(
@@ -134,79 +145,173 @@ class QuasarSpectrum(object):
             err_flux = qso_table.ferr.values
             unnormalized_flux=np.ones_like(qso_table.flx.values)*np.nan
             resolution = qso_table.res.values # june 24
+            mask_dla =  np.ones_like(wavelength,'bool')  #no DLAs curently in mocks so this doens't do anything
         else:
-            ### OBSERVATIONS (XQ-100) ###
-            if inis.redside_avg: #feb13
-                ### USING REDSIDE AVG INSTEAD OF GIVEN CONTINUUM FOR NORMALIZATION ###
-                released_path = "../data/obs/XQ-100/released/{0}_uvb-vis.txt".format(name) #feb13
-                qso_table = pd.read_csv(released_path, delim_whitespace=True, skiprows = 1,usecols=(0,1,2,3,4), #feb13
-                                        names = ("wav", "flx", "ferr", "res","dloglam")) #feb13
-                mask_wave = (qso_table.wav.values>opt.lyb_min*(1+redshift))&( #feb13
-                           qso_table.wav.values<opt.lya_rest/opt.lyb_rest*opt.lyb_max*(1+redshift))&( #feb13
-                           qso_table.flx.values>opt.min_trans) #feb13
-                qso_table = qso_table[mask_wave] #feb13
-                wavelength = qso_table.wav.values #feb13
-                unnormalized_flux = qso_table.flx.values #feb13
-                flux = qso_table.flx.values*1
-                err_flux = qso_table.ferr.values #feb13
-                resolution = np.ones_like(wavelength)
-                m1 = wavelength<=5599.14
-                resolution[m1] = 41.52075368/(2*np.sqrt(2*np.log(2))) #converting FWHM to sigma_R
-                resolution[~m1] = 23.60134842/(2*np.sqrt(2*np.log(2)))
 
-                ### normalized flux with redside_avg ###
-                zpix = wavelength/opt.lya_rest - 1 # 3.6,4.8
-                redside_avg = np.loadtxt("../output/redside_avg.txt")[:-2] #only using first 4
-                temp_edges = np.array([2.0,3.7,3.9,4.1,5.0])
-                for i in range(len(temp_edges)-1):
-                    mask = (zpix>temp_edges[i])&(zpix<temp_edges[i+1])
-                    flux[mask] = unnormalized_flux[mask]/redside_avg[i]
-                    err_flux[mask] = err_flux[mask]/redside_avg[i]
-
-            else:
-                ### LOADING IN DATA NORMALLY ###
-                released_path = "../data/obs/XQ-100/released/{0}_uvb-vis.txt".format(name)
-                continuum_path = "../data/obs/XQ-100/continuum/{0}_cont.txt".format(name)
-                qso_table = pd.read_csv(released_path, delim_whitespace=True, skiprows = 1,usecols=(0,1,2,3,4),
+            ### LOADING IN DATA NORMALLY ###
+            released_path = "../data/obs/XQ-100/released/{0}_uvb-vis.txt".format(name)
+            continuum_path = "../data/obs/XQ-100/continuum/{0}_cont.txt".format(name)
+            qso_table = pd.read_csv(released_path, delim_whitespace=True, skiprows = 1,usecols=(0,1,2,3,4),
                                         names = ("wav", "flx", "ferr", "res","dloglam"))
-                cont_table = pd.read_csv(continuum_path, delim_whitespace=True, skiprows = 1,usecols=(0,1),
-                                        names = ("wav",'flx'))
-                mask_wave = (qso_table.wav.values>opt.lyb_min*(1+redshift))&(
-                           qso_table.wav.values<opt.lya_rest/opt.lyb_rest*opt.lyb_max*(1+redshift))&(
-                           (qso_table.flx.values/cont_table.flx.values)>opt.min_trans)
-                # ### TESTING FEBRUARY 25 #feb25 #THERE ARE 2 BAD PIXELS AT Z= 3.25 AND 1.98
-                # bad_pix_mask = qso_table.flx.values/cont_table.flx.values<opt.min_trans
-                # asdf = np.sum(bad_pix_mask)
-                # if asdf != 0:
-                #     z_bad = qso_table.wav.values[bad_pix_mask]/opt.lya_rest-1
-                #     print(asdf,z_bad)
-                # ###
-                qso_table = qso_table[mask_wave]
-                cont_table = cont_table[mask_wave]
-                wavelength = qso_table.wav.values
-                unnormalized_flux = qso_table.flx.values
-                flux = unnormalized_flux/cont_table.flx.values
-                err_flux = qso_table.ferr.values/cont_table.flx.values
-                resolution = qso_table.res.values #this will be overwritten if we use Carswell+18 resolution
+            cont_table = pd.read_csv(continuum_path, delim_whitespace=True, skiprows = 1,usecols=(0,1),
+            names = ("wav",'flx'))
+            mask_wave = (qso_table.wav.values>opt.lyb_min*(1+redshift))&(
+                qso_table.wav.values<opt.lya_rest/opt.lyb_rest*opt.lyb_max*(1+redshift))&(
+                (qso_table.flx.values/cont_table.flx.values)>opt.min_trans)  #Matt M: Second criteria is because opt.lyb_max is the highest redshift pixel that is used (and I suspect we keep Lyman-alpha for it in case we want to regenerate forest)
+            # ### TESTING FEBRUARY 25 #feb25 #THERE ARE 2 BAD PIXELS AT Z= 3.25 AND 1.98
+            # bad_pix_mask = qso_table.flx.values/cont_table.flx.values<opt.min_trans
+            # asdf = np.sum(bad_pix_mask)
+            # if asdf != 0:
+            #     z_bad = qso_table.wav.values[bad_pix_mask]/opt.lya_rest-1
+            #     print(asdf,z_bad)
+            # ###
+            qso_table = qso_table[mask_wave]
+            cont_table = cont_table[mask_wave]
+            wavelength = qso_table.wav.values
+            unnormalized_flux = qso_table.flx.values
+            flux = unnormalized_flux/cont_table.flx.values
+            err_flux = qso_table.ferr.values/cont_table.flx.values
+            resolution = qso_table.res.values #this will be overwritten if we use Carswell+18 resolution
+            mask_dla =  np.ones_like(wavelength,'bool')
 
-                if inis.carswell_res: #feb27
-                    #resolution = np.ones_like(wavelength)
-                    m1 = wavelength>=opt.overlap_maxwav #Carswell+18 #this is exactly where the overlap stops and it becomes the VIS arm
-                    resolution[m1] = opt.R_VIS_carswell #~10
-                    m2 = wavelength<=opt.overlap_minwav
-                    resolution[m2] = opt.R_UV_carswell #~17
-                    ### DOING NOTHING WITH THE OVERLAP REGION JUST SO YA KNOW ###
+            if 'ADC' in tag and name in opt.ADC_off_qsos:
+                print("ADC off: quasar ", name, " is not being used")
+                mask_dla *= False 
+            
+            m1 = wavelength>=opt.overlap_maxwav #Carswell+18 #this is exactly where the overlap stops and it becomes the VIS arm
+            if inis.carswell_res: #feb27
+                resolution[m1] = opt.R_VIS_carswell
+                resolution[~m1] = opt.R_UV_carswell
+            else:
+                slitVIS = .9; slitUV = 1.;
 
+                #print("name = ", name, cls.seeing_table[cls.seeing_table.name==name].name.values)
+                seeing_min = cls.seeing_table[cls.seeing_table.name == name].seeing_min.values
+                seeing_max = cls.seeing_table[cls.seeing_table.name == name].seeing_max.values
+                #print("seeing = ", seeing_min, seeing_max)
+                FWHMseeing = 0.5*(seeing_min+seeing_max)
+
+                if ("goodseeing" in tag and FWHMseeing <0.75) or ("badseeing" in tag and FWHMseeing >0.75) :
+                    mask_dla *= False  #make it so quasar is not used
+                    if "goodseeing" in tag:
+                        print("goodseeing", FWHMseeing)
+                    else:
+                         print("badseeing", FWHMseeing)
+
+                    
+                #don't use quasar
+                if np.isnan(FWHMseeing):
+                    mask_dla *= False  #make it so quasar is not used
+                    FWHMseeing = 1 #since not using it anyway this is easy way to continue
+
+        
+                         
+                #print("FWHM = ", FWHMseeing, cls.seeing_table[cls.seeing_table.name == name])
+                for arm in ['VIS', 'UV']:
+                    x =(FWHMseeing/slitVIS if arm == 'VIS' else FWHMseeing/slitUV)
+                    x2 =(seeing_min/slitVIS if arm == 'VIS' else seeing_min/slitUV)
+                    x3 =(seeing_max/slitVIS if arm == 'VIS' else seeing_max/slitUV)
+                    
+                    if x < 0.8:
+                        res = 14.1375 + 8.88945*(-0.65 + x) - 13.9827*(-0.65 + x)**2 + 16.4146*(-0.65 + x)**3
+                        res2 = 14.1375 + 8.88945*(-0.65 + x2) - 13.9827*(-0.65 + x2)**2 + 16.4146*(-0.65 + x2)**3
+                        res3 = 14.1375 + 8.88945*(-0.65 + x3) - 13.9827*(-0.65 + x3)**2 + 16.4146*(-0.65 + x3)**3
+                    else:
+                        res = 16.0069 + 3.02506*(-1 + x) - 4.15522*(-1 + x)**2 +   4.3044*(-1 + x)**3
+                        res2 = 16.0069 + 3.02506*(-1 + x2) - 4.15522*(-1 + x2)**2 +   4.3044*(-1 + x2)**3
+                        res3 = 16.0069 + 3.02506*(-1 + x3) - 4.15522*(-1 + x3)**2 +   4.3044*(-1 + x3)**3
+                    if arm == 'UV':
+                        res*=5400/4700
+                        res2*= 5400/4700
+                        res3*= 5400/4700
+                        resolution[~m1] = res
+                    else:
+                        res*=5400/8900
+                        res2*= 5400/8900
+                        res3*= 5400/8900
+                        resolution[m1] = res  #using ESO resolution; this is how it has to scale assuming intrinsic dispersion scales with FWHM of tophat
+                                                            #(where intrinsic is Gaussian that is convolved with tophat)
+                    if not np.isnan(seeing_min+seeing_max): 
+                        kmax_dict[arm] = np.sqrt(.2/(res3**2 - res2**2 + 1e-5))  #maximum wavenumber for 10% error
+                    print(arm, " FWHM = ", seeing_min, seeing_max, res, res2, kmax_dict[arm], opt.R_UV_carswell,  kmax_dict[arm]);
+                    
         if "wR2" in tag and not inis.wR2:
             # Using new column
             resolution = np.ones_like(qso_table.res.values)*11 * 0.2
         if ("noB" in tag)&(inis.add_beta): #july21
             flux = flux**rescale_flux #np.exp(rescale_flux*np.log(flux)) #flux**rescale_flux #july20
         dloglambda = qso_table.dloglam.values
+
+        
+        if inis.remove_dla:
+            cls.getDLAmask(name, mask_dla, wavelength, flux)
+            
         return cls(name=name,redshift=redshift,
                    wavelength=wavelength, flux=flux, err_flux=err_flux,
-                   resolution=resolution,dloglambda=dloglambda,
+                   resolution=resolution, mask_dla=mask_dla, dloglambda=dloglambda, kmax=kmax_dict,
                    unnormalized_flux=unnormalized_flux)
+
+    @classmethod
+    def getDLAmask(cls, name, mask_dla, wavelength, flux):
+        """Masking DLAs
+        """
+        if name in cls.dla_table.name.values:
+            sub_table = cls.dla_table[cls.dla_table.name == name]
+            num_dlas = len(sub_table)
+            #mask_dla = np.ones_like(wavelength,'bool')
+            for n in range(num_dlas):
+                row = sub_table.iloc[n]
+                z_dla,NHI = row.z, row.NHI
+
+                lambda_dla = opt.lya_rest*(1+ z_dla)
+                lambda_dlb = opt.lyb_rest*(1+ z_dla)
+                deltalambda_dla = opt.find_EW(NHI,"alpha",z_dla)*opt.DLA_cut_factor/2  #/opt.lya_rest
+                deltalambda_dlb = opt.find_EW(NHI,"beta",z_dla)*opt.DLA_cut_factor/2
+                dla_profile = opt.get_dla_profile(wavelength/opt.lya_rest/(1+z_dla) - 1.,10**NHI)
+                dlb_profile = opt.get_dlb_profile(wavelength/opt.lyb_rest/(1+z_dla) - 1.,10**NHI)
+
+                #mask central most observed part
+                mask_dla *= (wavelength<(lambda_dla-deltalambda_dla))|(wavelength>(lambda_dla+deltalambda_dla)) #lyman alpha
+                mask_dla *= (wavelength<(lambda_dlb-deltalambda_dlb))|(wavelength>(lambda_dlb+deltalambda_dlb)) #lyman beta
+                
+                #devide out effect in flux
+                flux[mask_dla] = flux[mask_dla]/dla_profile[mask_dla]
+                flux[mask_dla] = flux[mask_dla]/dlb_profile[mask_dla] 
+    
+  
+
+                #import sys
+                #import matplotlib.pyplot as plt
+                #print("DLA specs", name, z_dla, NHI)
+                #plt.plot(wavelength,flux)
+                #plt.plot(wavelength[mask_dla], flux[mask_dla]/dla_profile[mask_dla])
+                #plt.xlim(1216*(1+z_dla-.1), 1216*(1+z_dla+.1))
+                #plt.show()
+                    # sys.exit()
+                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla])
+                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla]/dla_profile[mask*mask_dla],color='red')
+
+
+                    # wave_dla = (1+z_dla)*opt.lya_rest
+                    # wave_dlb = (1+z_dla)*opt.lyb_rest
+                    # lo_wave_dla = wave_dla-opt.find_EW(NHI,'alpha',z_dla)*opt.DLA_cut_factor/2
+                    # hi_wave_dla = wave_dla+opt.find_EW(NHI,'alpha',z_dla)*opt.DLA_cut_factor/2
+                    # lo_wave_dlb = wave_dlb-opt.find_EW(NHI,'beta',z_dla)*opt.DLA_cut_factor/2
+                    # hi_wave_dlb = wave_dlb+opt.find_EW(NHI,'beta',z_dla)*opt.DLA_cut_factor/2
+
+                    ### Dividing out the DLA profile
+                    # mask_dla*=(self.wavelength<lo_wave_dla)|(self.wavelength>hi_wave_dla)
+                    # mask_dla*=(self.wavelength<lo_wave_dlb)|(self.wavelength>hi_wave_dlb)
+
+                    # dla_profile = opt.get_dla_profile((1.+z_dla)/(1.+zpix)-1,10**NHI)
+                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla])
+                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla]/dla_profile[mask*mask_dla],color='red')
+                    # #plt.axvline(z_dla)
+                    # plt.show()
+                    # #sys.exit()
+                    # if zidx==2:
+                    #     sys.exit()
+                    #print(str(np.mean(self.flux[mask*mask_dla]/dla_profile[mask*mask_dla]))+' '+str(np.mean(self.flux[mask*mask_dla])))
 
     def get_new_forest(self,rescale_flux,wrange): # line 26 in main.py
         """
@@ -272,56 +377,10 @@ class QuasarSpectrum(object):
                     (self.flux>opt.min_trans)&(zpix>=zedges[zidx])&(zpix<zedges[zidx+1])&
                     (res_mask))
 
-        ### Masking DLAs ###
-        if inis.cat_name.startswith('obs'):
-            if (name in self.dla_table.name.values)&(inis.remove_dla):
-                sub_table = self.dla_table[self.dla_table.name == name]
-                num_dlas = len(sub_table)
-                mask_dla = np.ones_like(self.wavelength,'bool')
-                for n in range(num_dlas):
-                    row = sub_table.iloc[n]
-                    z_dla,NHI = row.z, row.NHI
-                    deltaz_dla = opt.find_EW(NHI,"alpha",z_dla)*opt.DLA_cut_factor/2/opt.lya_rest
-                    deltaz_dlb = opt.find_EW(NHI,"beta",z_dla)*opt.DLA_cut_factor/2/opt.lya_rest
-
-                    dla_profile = opt.get_dla_profile((1.+z_dla)/(1.+zpix)-1,10**NHI)
-                    mask_dla *= (zpix<(z_dla-deltaz_dla))|(zpix>(z_dla+deltaz_dla))
-                    mask_dla *= (zpix<(opt.find_za(z_dla)-deltaz_dlb))|(zpix>(opt.find_za(z_dla)+deltaz_dlb))
-                    self.flux[mask*mask_dla] = self.flux[mask*mask_dla]/dla_profile[mask*mask_dla]
-                    # import sys
-                    # import matplotlib.pyplot as plt
-                    # plt.plot(zpix,self.flux)
-                    # plt.plot(zpix[mask],self.flux[mask])
-                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla]/dla_profile[mask*mask_dla])
-                    # plt.show()
-                    # sys.exit()
-                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla])
-                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla]/dla_profile[mask*mask_dla],color='red')
-
-
-                    # wave_dla = (1+z_dla)*opt.lya_rest
-                    # wave_dlb = (1+z_dla)*opt.lyb_rest
-                    # lo_wave_dla = wave_dla-opt.find_EW(NHI,'alpha',z_dla)*opt.DLA_cut_factor/2
-                    # hi_wave_dla = wave_dla+opt.find_EW(NHI,'alpha',z_dla)*opt.DLA_cut_factor/2
-                    # lo_wave_dlb = wave_dlb-opt.find_EW(NHI,'beta',z_dla)*opt.DLA_cut_factor/2
-                    # hi_wave_dlb = wave_dlb+opt.find_EW(NHI,'beta',z_dla)*opt.DLA_cut_factor/2
-
-                    ### Dividing out the DLA profile
-                    # mask_dla*=(self.wavelength<lo_wave_dla)|(self.wavelength>hi_wave_dla)
-                    # mask_dla*=(self.wavelength<lo_wave_dlb)|(self.wavelength>hi_wave_dlb)
-
-                    # dla_profile = opt.get_dla_profile((1.+z_dla)/(1.+zpix)-1,10**NHI)
-                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla])
-                    # plt.plot(zpix[mask*mask_dla],self.flux[mask*mask_dla]/dla_profile[mask*mask_dla],color='red')
-                    # #plt.axvline(z_dla)
-                    # plt.show()
-                    # #sys.exit()
-                    # if zidx==2:
-                    #     sys.exit()
-                    #print(str(np.mean(self.flux[mask*mask_dla]/dla_profile[mask*mask_dla]))+' '+str(np.mean(self.flux[mask*mask_dla])))
-
-                return mask*mask_dla #july 16
-        return mask
+ 
+        #print("self.mask_dla ", self.mask_dla, np.sum(mask), np.sum(self.mask_dla*mask))
+        return mask*self.mask_dla #july 16
+        
 
     @staticmethod
     def get_npow(mf,nvar,dloglambda): #line 121 main.py
@@ -347,24 +406,27 @@ class QuasarSpectrum(object):
         pk = np.abs(rf_k)**2/V
         return k,pk
     @staticmethod
-    def get_kmask(kpix,kidx,kedges): # line 190 main.py
+    def get_kmask(kpix,kidx,kedges, kmax): # line 190 main.py
         """
         Mask to get k-bins.
         """
-        mask = ((kpix>=kedges[kidx])&(kpix<kedges[kidx+1]))#&(kpix!=0))
+        mask = ((kpix>=kedges[kidx])&(kpix<kedges[kidx+1])) & (kpix<kmax) #&(kpix!=0))
         return mask
+        
     def get_pk_subsets(self,kpix,pk,zmask,kmask,corr_tag,npow):
         """
         Slices previously computed power spectrum by k-bin (specified by kmask) and (potentially) applies noise and resolution correction
         """
         kpix_sub,pk_sub = kpix[kmask], pk[kmask]
-        R = self.resolution[zmask][kmask]
-        dv_array = opt.c_kms*np.log(10)*self.dloglambda[zmask][kmask]
+        R = self.resolution[zmask][kmask] 
+        dv_array = opt.c_kms*np.log(10)*self.dloglambda[zmask][kmask]   #Matt M: COME back and understand this
+
+        #print("resolution = ", np.mean(R))
         if (('corrNR' in corr_tag) or
             ('corrN' in corr_tag) or
             ('wN' in corr_tag) or
             ('wNR' in corr_tag)):
-            pk_sub = pk_sub - npow #noise correction
+            pk_sub = pk_sub - npow*np.sinc(0.5*kpix_sub*dv_array/np.pi)**2 #noise correction   #Matt M:  subtracting noise power prior to correcting for resolution (next step), which is correct order, I added this
         if (('corrNR' in corr_tag) or
             ('corrR' in corr_tag) or
             ('wR' in corr_tag) or
@@ -378,12 +440,12 @@ class QuasarSpectrum(object):
         """
         kpix_sub,pab_sub,qab_sub = kpix[kmask], pab[kmask], qab[kmask]
         dv_array = opt.c_kms*np.log(10)*dlam[kmask]
-        if (('corrNR' in corr_tag) or
-            ('corrN' in corr_tag) or
-            ('wN' in corr_tag) or
-            ('wNR' in corr_tag)):
-            pab_sub = pab_sub - npow
-            qab_sub = qab_sub - npow
+        #if (('corrNR' in corr_tag) or
+        #    ('corrN' in corr_tag) or
+        #    ('wN' in corr_tag) or
+        #    ('wNR' in corr_tag)):
+        #    pab_sub = pab_sub - npow
+        #    qab_sub = qab_sub - npow
 
         if (('corrNR' in corr_tag) or
             ('corrR' in corr_tag) or
@@ -412,7 +474,11 @@ class QuasarSpectrum(object):
         resb = self.resolution[mask_lyb]
         new_af_mask = (za>np.min(zb))&(za<np.max(zb))
         new_bf_mask = (zb>np.min(za))&(zb<np.max(za))
-
+        
+        #new_bf_mask = (zb>np.min(zb))&(zb<np.max(zb))
+        #print("dv = ", zb[1], 3e5*(np.min(za[new_af_mask])-za[0])/(1+za[1]), 3e5*(zb[1]-np.min(zb[new_bf_mask]))/(1+zb[0]))
+        print("v offset", (np.min(za[new_af_mask])- np.min(zb[new_bf_mask]))/(1+np.min(za[new_af_mask]))*3e5+7.25)
+        
         N_a = np.sum(new_af_mask)#aug5
         N_b = np.sum(new_bf_mask)#aug5
         if N_a>N_b: # beta is reference
