@@ -4,44 +4,34 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 import options as opt
-import inis as inis
+import inis
 
 ##### Control Area ######
 plot_inis = True
-plot_BOSS = False
-plot_becker = False
-plot_models = False
+plot_BOSS = True
+plot_becker = True
+plot_models = True
 show_plot = False
 
 # cont_corrected = False
 fontsize = 18
 #########################
 
-mf_df = pd.read_csv("../output/mf_obs_lyb_wNR.csv")
-mf_boot = np.loadtxt("../output/mf_boot_obs_lyb_wNR.csv")
-
-mf_df_uves = pd.read_csv("../output_uves/mf_obs_lyb_nocorr.csv")
-mf_boot_uves = np.loadtxt("../output_uves/mf_boot_obs_lyb_nocorr_nb100_DLAFalse.csv")
-
+mf_df = pd.read_csv(inis.save_mf_path)
+mf_boot = np.loadtxt(inis.save_boot_mf_path)
 errorbars = np.reshape(np.cov(mf_boot).diagonal()**0.5,(2,opt.zbinlen))
-errorbars_uves = np.reshape(np.cov(mf_boot_uves).diagonal()**0.5,(2,opt.zbinlen))
 
 # Continuum correction
 C_a_ratio = opt.continuum_correction(opt.zbin_centers)
 C_t_ratio = opt.continuum_correction(opt.zbin_centers-0.2)
 C_b_ratio = np.abs(np.abs(C_a_ratio)-np.abs(C_t_ratio))
 
-
 mfa = mf_df.mf_a # mean lyman alpha flux #continuum corrected
-mfa_uves = mf_df_uves.mf_a
-
 mfa_uncorr = mfa / (1-C_a_ratio)
 
 nans_mft = np.ones_like(opt.zbin_centers)
 nans_mft[:2] = np.nan
 mft = mf_df.mf_tot*nans_mft # mean total flux in lyman beta forest (includes both lyb and lya)
-mft_uves =  mf_df_uves.mf_tot
-
 mft_uncorr = mft / (1-C_t_ratio)*nans_mft
 # one data point is bad
 
@@ -49,26 +39,16 @@ mft_uncorr = mft / (1-C_t_ratio)*nans_mft
 mfb = mf_df.mf_b # mean lyman beta flux
 mfb_uncorr = mfb / (1-C_b_ratio)
 
-mfb_uves = mf_df_uves.mf_b # mean lyman beta flux
-
 err_mfa = errorbars[0]#mf_df.err_mfa
 err_mft = errorbars[1]#mf_df.err_mft
 err_mfb = opt.find_err_mf_beta(mfb,mfa,err_mfa,mft,err_mft)
 
-err_mfa_uves = errorbars_uves[0]#mf_df.err_mfa
-err_mft_uves = errorbars_uves[1]#mf_df.err_mft
-err_mfb_uves = opt.find_err_mf_beta(mfb_uves,mfa_uves,err_mfa_uves,mft_uves,err_mft_uves)
-
 z_mf = mf_df.z
-
-z_mf_uves = mf_df_uves.z
-
-
 
 colors = ['red','blue','green','black','gray'] # 3 colors for mfa,mft,mfb
 labels = [r"$\overline{F}_{\beta}$",r"$\overline{F}_{T}$",r"$\overline{F}_{\alpha}$", " ",
           r"$\gamma = 1.5$",r"$\gamma = 1.0$", #" ",
-          "Xshooter", "UVES"]
+          "Continuum Uncorrected", "Continuum Corrected"]
 linestyles = ['-','dashed','-.','dotted']
 # linestyles = ["-","-.","--"]
 custom_lines = [Line2D([0], [0], color=colors[2], lw=9),
@@ -78,8 +58,8 @@ custom_lines = [Line2D([0], [0], color=colors[2], lw=9),
                 Line2D([0], [0], color=colors[3], lw=9),
                 Line2D([0], [0], color=colors[4], lw=9),
                 #Line2D([0], [0], lw=0),
-                Line2D([0], [0], color='k',ls=linestyles[0]),
-                Line2D([0], [0], color='k',ls=linestyles[1])]
+                Line2D([0], [0], color='k',ls=linestyles[1]),
+                Line2D([0], [0], color='k',ls=linestyles[0])]
 #Plotting
 fig,ax = plt.subplots(1)
 fig.set_size_inches(12,8)#(8,5)
@@ -89,22 +69,17 @@ ax.set_xlabel("z",fontsize = 30)
 
 if plot_inis:
     ax.errorbar(z_mf,mfa,yerr=err_mfa,color=colors[0],capsize=5,markersize=0,lw=2,capthick=2.5)
-    ax.errorbar(z_mf_uves,mfa_uves,yerr=err_mfa_uves,color=colors[0],capsize=5,markersize=0,lw=2,capthick=2.5,ls=linestyles[1])
-    #ax.errorbar(z_mf*1.001,mfa_uncorr,yerr=err_mfa,color=colors[0],capsize=5,markersize=0,
-    #                  lw=1.5,capthick=2.5,ls=linestyles[1])#[-1][0].set_linestyle('--')
+    ax.errorbar(z_mf*1.001,mfa_uncorr,yerr=err_mfa,color=colors[0],capsize=5,markersize=0,
+                      lw=1.5,capthick=2.5,ls=linestyles[1])#[-1][0].set_linestyle('--')
 
     ax.errorbar(z_mf,mft,yerr=err_mft,color=colors[1],capsize=5,markersize=0,lw=2,capthick=2.5)
-    ax.errorbar(z_mf_uves,mft_uves,yerr=err_mft_uves,color=colors[1],capsize=5,markersize=0,lw=2,capthick=2.5, ls=linestyles[1])
-    #ax.errorbar(z_mf*1.000,mft_uncorr,yerr=err_mft,color=colors[1],capsize=5,markersize=0,
-    #                  lw=1.5,capthick=2.5,ls=linestyles[1])
+    ax.errorbar(z_mf*1.000,mft_uncorr,yerr=err_mft,color=colors[1],capsize=5,markersize=0,
+                      lw=1.5,capthick=2.5,ls=linestyles[1])
 
     # ax.errorbar(z_mf,mfb,yerr=err_mfb,color=colors[2],capsize=4,markersize=0,lw=1.5,capthick=2)
     ax.errorbar(z_mf,mfb,yerr=err_mfb,color=colors[2],capsize=5,markersize=0,lw=2,capthick=2.5,ls=linestyles[0])
-    ax.errorbar(z_mf_uves,mfb_uves,yerr=err_mfb_uves,color=colors[2],capsize=5,markersize=0,lw=2,capthick=2.5,ls=linestyles[1])
-    #ax.errorbar(z_mf*0.999,mfb_uncorr,yerr=err_mfb,color=colors[2],capsize=5,markersize=0,
-    #                  lw=1.5,capthick=2.5,ls=linestyles[1])
-
-
+    ax.errorbar(z_mf*0.999,mfb_uncorr,yerr=err_mfb,color=colors[2],capsize=5,markersize=0,
+                      lw=1.5,capthick=2.5,ls=linestyles[1])
     #labels.append(r"$\overline{F}_{\beta}$ Continuum Corrected")
     # custom_lines.append(Line2D([0], [0], color=colors[0], lw=9))
 
@@ -163,9 +138,8 @@ ax.tick_params(axis='both', which='major', labelsize=20)
 ax.legend(custom_lines,labels,fontsize=20,loc='lower left',ncol=2,frameon=False)# bbox_to_anchor=(1, 0.5))
 
 if inis.save_paper_mf_v3:
-    savefile = "figures/mf_figure_uves.pdf"
-    plt.savefig(savefile)
-print(savefile)
+    plt.savefig(inis.save_paper_mf_v3_path)
+print(inis.save_paper_mf_v3_path)
 if show_plot:
     plt.show()
 plt.clf()

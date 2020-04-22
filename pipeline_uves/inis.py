@@ -4,21 +4,20 @@ import os
 ########################################################################################
 ######################## Control Center for entire pipeline ############################
 ########################################################################################
-cat_name = "obs/XQ-100_catalogue" #"mocks/XQ-100_catalogue_n100" 
-tag = "lyb_wNR"
+cat_name = "obs/UVES_DR1_QSO_catalogue" #"mocks/XQ-100_catalogue_n100" 
+tag = "lyb_nocorr"
 mock_or_obs = cat_name.split("/")[0]
 
-subtract_metal_power = True
+subtract_metal_power = False
 continuum_correction = False
 M = 1000 # Bootstrap samples, line 19 in boot_indo.py
-remove_dla = True
+remove_dla = False
 wR2 = False # If True use original R2, if False, use wR column (11 km/s)
 log_kbinning = True
-carswell_res = 0 #1 == use the resolution from Carswell+18, 0== use my resolution
-onlyVIS = False #only use VIS for resultion
-no_overlap = True
+uves_resolution = 0 #1 == use the resolution from Carswell+18, 0== use my resolution
 #flags Matt M put in (seems redundant with some of above)
-individual_qso_kmax = 1
+individual_qso_kmax = 0
+CNR_threshold = 20 #signal to noise threshold
 
 #flags for mocks
 add_beta = False # only works on "noB" mocks, see line 188 in QuasarSpectrum.py
@@ -64,38 +63,38 @@ rescale_flux = 1.0
 #####################
 ###  Saving Data  ###
 #####################
-save_mf_path = "../output/mf_{0}_{1}.csv".format(mock_or_obs,tag)
+save_mf_path = "../output_uves/mf_{0}_{1}_SNR{2}.csv".format(mock_or_obs,tag, CNR_threshold)
 save_mf_with_err = True #get_errorbars.py
-save_mf_with_err_path = "../output/mf_errboot_{0}_{1}.txt".format(mock_or_obs,tag)  #bootstrapped value
+save_mf_with_err_path = "../output_uves/mf_errboot_{0}_{1}_SNR{2}.txt".format(mock_or_obs,tag, CNR_threshold)  #bootstrapped value
 
 save_pk = True #main.py
 save_pk_with_err = True #plot_pk.py
 if mock_or_obs == 'obs':
-    save_pk_path = "../output/pk_{0}_{1}_DLA{2}_metal{3}_res{4}.csv".format(mock_or_obs,tag, remove_dla, subtract_metal_power, carswell_res)
-    save_pk_with_err_path = "../output/pk_errboot_{0}_{1}_DLA{2}_metal{3}_res{4}_nb{5}".format(mock_or_obs,tag, remove_dla, subtract_metal_power, carswell_res, M)
+    save_pk_path = "../output_uves/pk_{0}_{1}_DLA{2}_metal{3}_SNR{4}.csv".format(mock_or_obs,tag, remove_dla, subtract_metal_power, CNR_threshold )
+    save_pk_with_err_path = "../output_uves/pk_errboot_{0}_{1}_DLA{2}_metal{3}_SNR{4}_nb{5}".format(mock_or_obs,tag, remove_dla, subtract_metal_power, CNR_threshold , M)
 else: 
-    save_pk_path = "../output/pk_{0}_{1}.csv".format(mock_or_obs,tag)
-    save_pk_with_err_path = "../output/pk_errboot_{0}_{1}.txt".format(mock_or_obs,tag)
+    save_pk_path = "../output_uves/pk_{0}_{1}.csv".format(mock_or_obs,tag)
+    save_pk_with_err_path = "../output_uves/pk_errboot_{0}_{1}.txt".format(mock_or_obs,tag)
     
 save_boot_mf = True #bootstrap_pk.py
-save_boot_mf_path = "../output/mf_boot_{0}_{1}_nb{2}_DLA{3}.csv".format(mock_or_obs,tag, M, remove_dla)
+save_boot_mf_path = "../output_uves/mf_boot_{0}_{1}_nb{2}_DLA{3}_SNR{4}.csv".format(mock_or_obs,tag, M, remove_dla, CNR_threshold)
 
 save_boot_pk = True #bootstrap_pk.py
-save_boot_pk_path = "../output/pk_boot_{0}_{1}_DLA{2}_metal{3}_res{4}_nb{5}.csv".format(mock_or_obs,tag, remove_dla, subtract_metal_power, carswell_res, M)
+save_boot_pk_path = "../output_uves/pk_boot_{0}_{1}_DLA{2}_metal{3}_SNR{4}_nb{5}.csv".format(mock_or_obs,tag, remove_dla, subtract_metal_power, CNR_threshold , M)
 
 
 #save in k,z,qidx bins July 18  (These are for the bootstrap samples)
-save_kzq_mf_path = "../output/qsos_mf_{0}_{1}.txt".format(mock_or_obs, tag)
+save_kzq_mf_path = "../output_uves/qsos_mf_{0}_{1}_SNR{2}.txt".format(mock_or_obs, tag,  CNR_threshold)
 if mock_or_obs == 'obs':
-    save_kzq_pk_path = "../output/qsos_pk_{0}_{1}_DLA{2}_metal{3}_res{4}.txt".format(mock_or_obs,tag, remove_dla, subtract_metal_power, carswell_res)
+    save_kzq_pk_path = "../output_uves/qsos_pk_{0}_{1}_DLA{2}_metal{3}_SNR{4}.txt".format(mock_or_obs,tag, remove_dla, subtract_metal_power, CNR_threshold )
 else:
-    save_kzq_pk_path = "../output/qsos_pk_{0}_{1}.txt".format(mock_or_obs,tag)
+    save_kzq_pk_path = "../output_uves/qsos_pk_{0}_{1}.txt".format(mock_or_obs,tag)
 #save masks bins July 31
-save_masks_path = "../output/qsos_masks_{0}.txt".format(tag)
+save_masks_path = "../output_uves/qsos_masks_{0}.txt".format(tag)
 
 
 save_flux_pdf = False
-save_flux_pdf_path = "../output/flux_pdf_lya.txt"
+save_flux_pdf_path = "../output_uves/flux_pdf_lya.txt"
 
 ########################
 ###  Saving Figures  ###
