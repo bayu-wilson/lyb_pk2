@@ -21,7 +21,7 @@ rand_matrix = [np.floor(np.random.rand(nqso)*nqso).astype(int) for i in range(M)
 boot_mf_arr = np.zeros((M,opt.zbinlen*2)) #empty matrix to be filled with mf values for each bootstrap sample
 boot_pk_arr = np.zeros((M,opt.zbinlen*3,opt.kbinlen))#empty matrix to be filled with pk values for each bootstrap sample
 
-print("Doing mean flux bootraps")
+print("Doing mean flux bootstraps")
 for m in range(M):
     rand_qidxs = rand_matrix[m] #array of 100 random integers with replacement
     mf_arr = np.zeros((opt.zbinlen*2)) #empty matrix to be filled with lya and lya-lyb mf values in z bins
@@ -85,8 +85,8 @@ else: #mine
                         pk_arr[pidx*opt.zbinlen+zidx][kidx] += pk_qso[qidx][pidx*opt.zbinlen+zidx][kidx]
                         N_arr[pidx*opt.zbinlen+zidx][kidx] += N_qso[qidx][pidx*opt.zbinlen+zidx][kidx]
         boot_pk_arr[m] = pk_arr/N_arr
-                    
-        
+
+
 mf_summed = pd.read_csv(inis.save_mf_path)
 mf_boot = np.reshape(np.mean(boot_mf_arr,axis=0),(2,opt.zbinlen))
 
@@ -135,7 +135,7 @@ if inis.save_boot_mf:
 
 
 
-        
+
 if inis.save_boot_pk:
     np.savetxt(inis.save_boot_pk_path,np.reshape(boot_pk_corr,(M,opt.zbinlen*3*opt.kbinlen)).T)
     p = np.loadtxt(inis.save_boot_pk_path)

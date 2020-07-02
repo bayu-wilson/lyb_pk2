@@ -18,7 +18,7 @@ carswell_res = 0 #1 == use the resolution from Carswell+18, 0== use my resolutio
 onlyVIS = False #only use VIS for resultion
 no_overlap = True
 #flags Matt M put in (seems redundant with some of above)
-individual_qso_kmax = 1
+individual_qso_kmax = 0 #20-06-01. Bayu changes to False or else this doesn't work.
 
 #flags for mocks
 add_beta = False # only works on "noB" mocks, see line 188 in QuasarSpectrum.py

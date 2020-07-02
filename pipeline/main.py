@@ -179,7 +179,7 @@ for zidx in range(opt.zbinlen): #aug20
         #################### LYA FOREST: P ALPHA ALPHA ####################
         ###################################################################
         name = qso_arr[qidx].name
-        #[kmaxa, kmaxb, kmaxab] = qso_arr[qidx].kmax_arr  #Matt M:added this
+        # [kmaxa, kmaxb, kmaxab] = qso_arr[qidx].kmax_arr  #Matt M:added this #20-06-01
 
         zpix_a = qso_arr[qidx].get_zpix(opt.lya_rest)
         zmask_a = qso_arr[qidx].get_zmask(forest=(opt.lya_min,opt.lya_max,opt.lya_rest),
@@ -328,8 +328,8 @@ for i in range(1,opt.zbinlen):
 ########## SUBTRACTING REDSIDE METAL POWER ##########
 if inis.subtract_metal_power:
     metal_power = np.concatenate([np.loadtxt('../data/obs/pk_xs_avg.txt')]*opt.zbinlen) #subtracting metals again sep25
-    x.Paa = x.Paa.values-metal_power
-    x.Ptot = x.Ptot.values-metal_power
+    x.paa = x.paa.values-metal_power #20-06-01. Paa doesn't exist. paa does.
+    x.ptt = x.ptt.values-metal_power #20-06-01
     #x.Pbb = x.Pbb.values-metal_power #redside metals won't affect beta power. contribution cancels out
 
 ###########################################################

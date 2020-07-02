@@ -52,10 +52,10 @@ if inis.mock_or_obs == "obs":
     if inis.save_pk_with_err:
         columns = ['k','z','paa','err_paa','ptt', 'err_ptt', 'pab','err_pab','pbb','err_pbb']
         pk_everything = np.column_stack((pkdata.k,pkdata.z,
-                        pkdata.Paa, err_paa,
-                        pkdata.Ptot, err_ptt,
-                        pkdata.Pab,err_pab,
-                        pkdata.Pbb, err_pbb,))
+                        pkdata.paa, err_paa, #20-06-01. Changed Paa to paa. similar thing for the next 4 lines.
+                        pkdata.ptt, err_ptt,
+                        pkdata.pab,err_pab,
+                        pkdata.pbb, err_pbb,))
         df_pk = pd.DataFrame(pk_everything,columns=columns)
         df_pk.to_csv(inis.save_pk_with_err_path, index=False)
         # np.savetxt(inis.save_pk_with_err_path,pk_everything)
